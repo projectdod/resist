@@ -1,22 +1,20 @@
+#!/usr/bin/env node
+
+require.paths.push(__dirname);
+require.paths.push(__dirname + "/lib");
+
 var util = require('util');
 var http = require('http');
-var httpProxy = require('./proxy');
-
-// Configuration information goes here!
-var http_config = {
-  'hostname'      : 'darkside.dod.net',   // destination hostname
-  'remote_port'   : 80,                   // destination port
-  'local_port'    : 80,                   // port the proxy listens on
-  'cache_timeout' : 300,                  // timeout for a cached page (sec)
-  'clean_memory'  : 2,                    // clean memory (hours)
-  'memcached'     : false                 // store results in memcached
-};
+var httpProxy = require('proxy');
+var Config = require('config');
 
 //
 // You should not need to change anything below this line, unless you know
 // what you're doing.
 //
-
+var configuration = new Config();
+var config = configuration.get('dod.net');
+ 
 var welcome = "\
  +-----------------------------------------------------------------------+\n\
  |..REVERSE.CACHING.PROXY...............................  _  ............|\n\
@@ -88,7 +86,7 @@ var http_server = httpProxy.createServer(function (req, res, proxy) {
     cache_ok = false;
   }
 
-  if (http_config.memcached) {
+  if (config.memcached) {
    // get our object out of memcached
   } else {
     if (cache[key_prefix + req.headers.host + req.url] &&
@@ -129,14 +127,14 @@ var http_server = httpProxy.createServer(function (req, res, proxy) {
   }
 
   proxy.proxyRequest(req, res, {
-    host             : http_config.hostname,
-    port             : http_config.remote_port,
+    host             : config.hostname,
+    port             : config.remote_port,
     enableXForwarded : true,
     cacheOk          : cache_ok
   });
 });
 
-http_server.listen(http_config.local_port);
+http_server.listen(config.local_port);
 
 http_server.proxy.on('end', function (req, res, buffer) {
   var key_prefix = '';
@@ -147,7 +145,7 @@ http_server.proxy.on('end', function (req, res, buffer) {
 
   // if cache_ok was false, this is always 0
   if (buffer.length > 0) {
-    if (http_config.memcached) {
+    if (config.memcached) {
       // put results into memcached
     } else {
       // store results in memory
@@ -158,7 +156,7 @@ http_server.proxy.on('end', function (req, res, buffer) {
     }
 
     setTimeout(function () {
-      if (http_config.memcached) {
+      if (config.memcached) {
        // set results to timeout of memcached
       } else if (cache[key_prefix + req.headers.host + req.url]) {
         cache[key_prefix + req.headers.host + req.url].timeout = true;
@@ -166,9 +164,9 @@ http_server.proxy.on('end', function (req, res, buffer) {
         util.puts('setting ' + key_prefix + req.headers.host +
          req.url + ' to clear from cache.');
       }
-    }, http_config.cache_timeout * 1000);
+    }, config.cache_timeout * 1000);
 
-    if (!(http_config.memcached)) {
+    if (!(config.memcached)) {
       setTimeout(function () {
         if (cache[key_prefix + req.headers.host + req.url]) {
           delete cache[key_prefix + req.headers.host + req.url];
@@ -176,7 +174,7 @@ http_server.proxy.on('end', function (req, res, buffer) {
           util.puts('clearing ' + key_prefix + req.headers.host + req.url +
            ' from cache.');
         }
-      }, http_config.clean_memory * 3600 * 1000);
+      }, config.clean_memory * 3600 * 1000);
     }
   }
 });
