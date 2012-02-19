@@ -1,28 +1,34 @@
+require("function-bind");
+
 var Config = require("config"),
-    Gossiper = require('node-gossip').gossiper.Gossiper,
+    Gossiper = require('gossiper').Gossiper,
     stub = require("test/fixtures/stub");
 
-function _set_up(callback) {
-  var seed = new Gossiper(7000, []);
-  seed.start();
-  seed.setLocalState("dod.net", {
-    "hostname"      : "darkside.dod.net",
-    "remote_port"   : 80,
-    "local_port"    : 8000,
-    "cache_timeout" : 300,
-    "clean_memory"  : 2,
-    "memcached"     : false
-  });
+var seed = new Gossiper(7000, []);
 
-  this.config = new Config();
+seed.setLocalState("dod.net", {
+  "hostname"      : "darkside.dod.net",
+  "remote_port"   : 80,
+  "local_port"    : 8000,
+  "cache_timeout" : 300,
+  "clean_memory"  : 2,
+  "memcached"     : false
+});
+
+function _set_up(callback) {
   this.backup = {};
   this.backup.jsonParse = JSON.parse;
 
-  callback();
+  seed.start(function () {
+    this.config = new Config(function () {
+      callback();
+    });
+  }).bind(this);
 }
 
 function _tear_down(callback) {
   JSON.parse = this.backup.jsonParse;
+  seed.stop();
 
   callback();
 }
