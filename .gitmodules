@@ -1,3 +1,9 @@
 [submodule "node_modules/nodeunit"]
 	path = node_modules/nodeunit
 	url = git://github.com/godsflaw/nodeunit.git
+[submodule "node_modules/node-gossip"]
+	path = node_modules/node-gossip
+	url = git://github.com/godsflaw/node-gossip.git
+[submodule "node_modules/msgpack"]
+	path = node_modules/msgpack
+	url = git://github.com/godsflaw/node-msgpack.git
