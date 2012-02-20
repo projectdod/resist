@@ -12,23 +12,18 @@ var Config = require('config');
 // You should not need to change anything below this line, unless you know
 // what you're doing.
 //
-var configuration = new Config();
-var config = configuration.get('dod.net');
- 
-var welcome = "\
- +-----------------------------------------------------------------------+\n\
- |..REVERSE.CACHING.PROXY...............................  _  ............|\n\
- |...................................................... | | ............|\n\
- |..#### ...........#### ............................... |~| .......   ..|\n\
- |..## ## ...#### ..## ## ......### ..#### ..## .......  |~|  _  _  /~) .|\n\
- |..##  ## .##  ## .##  ## .....##### ## # ###### ....  /|_|.|-||-|/~/  .|\n\
- |..##  ## .##  ## .##  ## .....##.## #### ..## ...... |~'   `-'`-'~/ ...|\n\
- |..## ## ...#### ..## ## ..## .##.## ## ....## ...... \\ ) -\\_ .--  ) ...|\n\
- |..#### ...........#### ...## .##.## #### ..## ......  \\_    Y    / ....|\n\
- |......................................................  \\   ^   / .....|\n\
- +---------------------------------------------------------|~   ~|-------+\n\
-                            Be The Media\n";
-util.puts(welcome);
+var config = new Config(function () {
+  config.set("dod.net", {
+    "hostname"      : "darkside.dod.net",
+    "remote_port"   : 80,
+    "local_port"    : 8000,
+    "cache_timeout" : 300,
+    "clean_memory"  : 2,
+    "memcached"     : false
+  });
+
+  start_resist();
+});
 
 var cache = new Object();
 // Hardcoded regex for host+url nocache detection
@@ -69,112 +64,128 @@ var no_cache_cookie = new RegExp("(?:wordpress_logged_in_|" +
 var mobile = new RegExp("(?:iPhone|iPod|Android|dream|CUPCAKE|blackberry|" +
   "webOS|incognito|webmate|s8000|bada)", 'i');
 
-var http_server = httpProxy.createServer(function (req, res, proxy) {
-  var key_prefix = '';
-  var cache_ok = true;
-  var buffer = false;
-  var timeout = false;
+function start_resist() {
+  var welcome = "\
+   +----------------------------------------------------------------------+\n\
+   |..REVERSE.CACHING.PROXY..............................  _  ............|\n\
+   |..................................................... | | ............|\n\
+   |..#### ...........#### .............................. |~| .......   ..|\n\
+   |..## ## ...#### ..## ## ......### ..#### ..## ......  |~|  _  _  /~) .|\n\
+   |..##  ## .##  ## .##  ## .....##### ## # ###### ...  /|_|.|-||-|/~/  .|\n\
+   |..##  ## .##  ## .##  ## .....##.## #### ..## ..... |~'   `-'`-'~/ ...|\n\
+   |..## ## ...#### ..## ## ..## .##.## ## ....## ..... \\ ) -\\_ .--  ) ...|\n\
+   |..#### ...........#### ...## .##.## #### ..## .....  \\_    Y    / ....|\n\
+   |.....................................................  \\   ^   / .....|\n\
+   +--------------------------------------------------------|~   ~|-------+\n\
+                              Be The Media\n";
+util.puts(welcome);
+  var http_server = httpProxy.createServer(function (req, res, proxy) {
+    var key_prefix = '';
+    var cache_ok = true;
+    var buffer = false;
+    var timeout = false;
 
-  if (mobile.test(req.headers['user-agent'])) {
-    key_prefix = 'mobile-';
-  }
-
-  // Find everything we should not cache.
-  if (req.method === 'POST' ||
-      no_cache.test(key_prefix + req.headers.host + req.url) ||
-      no_cache_cookie.test(req.headers['cookie'])) {
-    cache_ok = false;
-  }
-
-  if (config.memcached) {
-   // get our object out of memcached
-  } else {
-    if (cache[key_prefix + req.headers.host + req.url] &&
-        cache[key_prefix + req.headers.host + req.url].buffer) {
-      buffer  = cache[key_prefix + req.headers.host + req.url].buffer;
-      timeout = cache[key_prefix + req.headers.host + req.url].timeout;
-    }
-  }
-
-  if (cache_ok && buffer) {
-    util.puts('loading ' + key_prefix + req.headers.host + req.url +
-      ' out of cache.');
-
-    res.end(buffer);
-
-    // If we don't have to fetch again, just return here.  So fast!
-    if (!(timeout)) {
-      return;
+    if (mobile.test(req.headers['user-agent'])) {
+      key_prefix = 'mobile-';
     }
 
-    // Oh this is total hacks so we don't have to change the core lib
-    res.writeHead = function (arg1, arg2) {};
-    res.write     = function () {};
-    res.end       = function () {};
-  }
+    // Find everything we should not cache.
+    if (req.method === 'POST' ||
+        no_cache.test(key_prefix + req.headers.host + req.url) ||
+        no_cache_cookie.test(req.headers['cookie'])) {
+      cache_ok = false;
+    }
 
-  if (cache_ok) {
-    if (timeout) {
-      util.puts('loading ' + key_prefix + req.headers.host + req.url +
-        ' off of the origin server. ' + '(background)');
+    if (config.get('dod.net').memcached) {
+     // get our object out of memcached
     } else {
-      util.puts('loading ' + key_prefix + req.headers.host + req.url +
-        ' off of the origin server.');
-    }
-  } else {
-    util.puts('loading ' + key_prefix + req.headers.host + req.url +
-      ' off of the origin server. ' + '(nocache)');
-  }
-
-  proxy.proxyRequest(req, res, {
-    host             : config.hostname,
-    port             : config.remote_port,
-    enableXForwarded : true,
-    cacheOk          : cache_ok
-  });
-});
-
-http_server.listen(config.local_port);
-
-http_server.proxy.on('end', function (req, res, buffer) {
-  var key_prefix = '';
-
-  if (mobile.test(req.headers['user-agent'])) {
-    key_prefix = 'mobile-';
-  }
-
-  // if cache_ok was false, this is always 0
-  if (buffer.length > 0) {
-    if (config.memcached) {
-      // put results into memcached
-    } else {
-      // store results in memory
-      cache[key_prefix + req.headers.host + req.url] = {
-        'buffer'    : buffer,
-        'timeout'   : false
-      };
-    }
-
-    setTimeout(function () {
-      if (config.memcached) {
-       // set results to timeout of memcached
-      } else if (cache[key_prefix + req.headers.host + req.url]) {
-        cache[key_prefix + req.headers.host + req.url].timeout = true;
-
-        util.puts('setting ' + key_prefix + req.headers.host +
-         req.url + ' to clear from cache.');
+      if (cache[key_prefix + req.headers.host + req.url] &&
+          cache[key_prefix + req.headers.host + req.url].buffer) {
+        buffer  = cache[key_prefix + req.headers.host + req.url].buffer;
+        timeout = cache[key_prefix + req.headers.host + req.url].timeout;
       }
-    }, config.cache_timeout * 1000);
-
-    if (!(config.memcached)) {
-      setTimeout(function () {
-        if (cache[key_prefix + req.headers.host + req.url]) {
-          delete cache[key_prefix + req.headers.host + req.url];
-
-          util.puts('clearing ' + key_prefix + req.headers.host + req.url +
-           ' from cache.');
-        }
-      }, config.clean_memory * 3600 * 1000);
     }
-  }
-});
+
+    if (cache_ok && buffer) {
+      util.puts('loading ' + key_prefix + req.headers.host + req.url +
+        ' out of cache.');
+
+      res.end(buffer);
+
+      // If we don't have to fetch again, just return here.  So fast!
+      if (!(timeout)) {
+        return;
+      }
+
+      // Oh this is total hacks so we don't have to change the core lib
+      res.writeHead = function (arg1, arg2) {};
+      res.write     = function () {};
+      res.end       = function () {};
+    }
+
+    if (cache_ok) {
+      if (timeout) {
+        util.puts('loading ' + key_prefix + req.headers.host + req.url +
+          ' off of the origin server. ' + '(background)');
+      } else {
+        util.puts('loading ' + key_prefix + req.headers.host + req.url +
+          ' off of the origin server.');
+      }
+    } else {
+      util.puts('loading ' + key_prefix + req.headers.host + req.url +
+        ' off of the origin server. ' + '(nocache)');
+    }
+
+    proxy.proxyRequest(req, res, {
+      host             : config.get('dod.net').hostname,
+      port             : config.get('dod.net').remote_port,
+      enableXForwarded : true,
+      cacheOk          : cache_ok
+    });
+  });
+
+  http_server.listen(config.get('dod.net').local_port);
+
+  http_server.proxy.on('end', function (req, res, buffer) {
+    var key_prefix = '';
+
+    if (mobile.test(req.headers['user-agent'])) {
+      key_prefix = 'mobile-';
+    }
+
+    // if cache_ok was false, this is always 0
+    if (buffer.length > 0) {
+      if (config.get('dod.net').memcached) {
+        // put results into memcached
+      } else {
+        // store results in memory
+        cache[key_prefix + req.headers.host + req.url] = {
+          'buffer'    : buffer,
+          'timeout'   : false
+        };
+      }
+
+      setTimeout(function () {
+        if (config.get('dod.net').memcached) {
+         // set results to timeout of memcached
+        } else if (cache[key_prefix + req.headers.host + req.url]) {
+          cache[key_prefix + req.headers.host + req.url].timeout = true;
+
+          util.puts('setting ' + key_prefix + req.headers.host +
+           req.url + ' to clear from cache.');
+        }
+      }, config.get('dod.net').cache_timeout * 1000);
+
+      if (!(config.get('dod.net').memcached)) {
+        setTimeout(function () {
+          if (cache[key_prefix + req.headers.host + req.url]) {
+            delete cache[key_prefix + req.headers.host + req.url];
+
+            util.puts('clearing ' + key_prefix + req.headers.host + req.url +
+             ' from cache.');
+          }
+        }, config.get('dod.net').clean_memory * 3600 * 1000);
+      }
+    }
+  });
+}
