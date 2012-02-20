@@ -4,16 +4,7 @@ var Config = require("config"),
     Gossiper = require('gossiper').Gossiper,
     stub = require("test/fixtures/stub");
 
-var seed = new Gossiper(7000, []);
-
-seed.setLocalState("dod.net", {
-  "hostname"      : "darkside.dod.net",
-  "remote_port"   : 80,
-  "local_port"    : 8000,
-  "cache_timeout" : 300,
-  "clean_memory"  : 2,
-  "memcached"     : false
-});
+var seed = new Gossiper(7000, [], '127.0.0.1');
 
 function _set_up(callback) {
   this.backup = {};
@@ -23,12 +14,13 @@ function _set_up(callback) {
     this.config = new Config(function () {
       callback();
     });
-  }).bind(this);
+  }.bind(this));
 }
 
 function _tear_down(callback) {
   JSON.parse = this.backup.jsonParse;
   seed.stop();
+  this.config.destroy();
 
   callback();
 }
@@ -62,12 +54,27 @@ exports.config = {
     test.done();
   },
   'get should return sane data' : function (test) {
-    var data = this.config.get('dod.net');
+    var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
+    gossiper.start();
 
-    test.expect(3);
-    test.isNotNull(data);
-    test.isObject(data);
-    test.equals(data.hostname, 'darkside.dod.net');
-    test.done();
+    setTimeout(function() {
+      var data = this.config.get('dod.net');
+
+      test.expect(3);
+      test.isNotNull(data);
+      test.isObject(data);
+      test.equals(data.hostname, 'darkside.dod.net');
+      test.done();
+      gossiper.stop();
+    }.bind(this), 10000);
+
+    gossiper.setLocalState("dod.net", {
+      "hostname"      : "darkside.dod.net",
+      "remote_port"   : 80,
+      "local_port"    : 8000,
+      "cache_timeout" : 300,
+      "clean_memory"  : 2,
+      "memcached"     : false
+    });
   }
 };
