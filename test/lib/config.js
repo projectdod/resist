@@ -2,7 +2,7 @@ var Config = require("config"),
     Gossiper = require('gossiper').Gossiper,
     stub = require("test/fixtures/stub");
 
-var seed = new Gossiper(7000, [], '127.0.0.1');
+var seed;
 
 function _set_up(callback) {
   var config = this;
@@ -13,6 +13,7 @@ function _set_up(callback) {
   this.backup.config.gossip = {};
   this.backup.jsonParse = JSON.parse;
 
+  seed = new Gossiper(7000, [], '127.0.0.1');
   seed.start(function () {
     this.config = new Config(function () {
       this.backup.config.gossip.stop = this.config.gossip.stop;
@@ -61,41 +62,41 @@ exports.config = {
     test.isNull(data);
     test.done();
   },
-//  'get should return sane data' : function (test) {
-//    var count = 0;
-//    var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
-//    gossiper.start();
-//
-//    // jackass test, but we need to see the config move through
-//    // gossip protocol into our config object.
-//    var test_get = function () {
-//      var data = this.config.get('dod.net');
-//
-//      if (data || count > 20) {
-//        test.expect(3);
-//        test.isNotNull(data);
-//        test.isObject(data);
-//        test.equals(data.hostname, 'darkside.dod.net');
-//        test.done();
-//
-//        gossiper.stop();
-//      } else {
-//        count++;
-//        setTimeout(test_get.bind(this), 1000);
-//      }
-//    };
-//
-//    setTimeout(test_get.bind(this), 1000);
-//
-//    gossiper.setLocalState("dod.net", {
-//      "hostname"      : "darkside.dod.net",
-//      "remote_port"   : 80,
-//      "local_port"    : 8000,
-//      "cache_timeout" : 300,
-//      "clean_memory"  : 2,
-//      "memcached"     : false
-//    });
-//  },
+  'get should return sane data' : function (test) {
+    var count = 0;
+    var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
+    gossiper.start();
+
+    // jackass test, but we need to see the config move through
+    // gossip protocol into our config object.
+    var test_get = function () {
+      var data = this.config.get('dod.net');
+
+      if (data || count > 20) {
+        test.expect(3);
+        test.isNotNull(data);
+        test.isObject(data);
+        test.equals(data.hostname, 'darkside.dod.net');
+        test.done();
+
+        gossiper.stop();
+      } else {
+        count++;
+        setTimeout(test_get.bind(this), 1000);
+      }
+    };
+
+    setTimeout(test_get.bind(this), 1000);
+
+    gossiper.setLocalState("dod.net", {
+      "hostname"      : "darkside.dod.net",
+      "remote_port"   : 80,
+      "local_port"    : 8000,
+      "cache_timeout" : 300,
+      "clean_memory"  : 2,
+      "memcached"     : false
+    });
+  },
   'should have a set method' : function (test) {
     test.expect(2);
     test.isNotNull(this.config.set);
@@ -107,22 +108,20 @@ exports.config = {
     var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
     gossiper.start(function () {
       gossiper.on('update', function(peer, key, value) {
-        if (key === 'dod.net') {
-          console.log("peer " + peer + " set " + key + " to " + value);
-          console.log(gossiper.peerValue(peer, 'dod.net'));
+        if (key !== '__heartbeat__') {
+          gossiper.setLocalState(key, value);
         }
-        // var peers = gossiper.allPeers();
-        // var len=peers.length;
-        // for(var i = 0; i < len; i++) {
-        //   console.log(peers[i]);
-        //   console.log(gossiper.peerKeys(peers[i]));
-        // }
       });
 
-      gossiper.on('new_peer', function(peer) {
-        console.log("new peer " + peer);
+      this.config.set("dod.net", {
+        "hostname"      : "testing.dod.net",
+        "remote_port"   : 80,
+        "local_port"    : 8000,
+        "cache_timeout" : 300,
+        "clean_memory"  : 2,
+        "memcached"     : false
       });
-    });
+    }.bind(this));
 
     // jackass test, but we need to see the config move through
     // gossip protocol to our peers.
@@ -148,17 +147,6 @@ exports.config = {
     };
 
     setTimeout(test_set.bind(this), 1000);
-
-    setTimeout(function () {
-      this.config.set("dod.net", {
-        "hostname"      : "testing.dod.net",
-        "remote_port"   : 80,
-        "local_port"    : 8000,
-        "cache_timeout" : 300,
-        "clean_memory"  : 2,
-        "memcached"     : false
-      });
-    }.bind(this), 3000);
   },
   'should have a destroy method' : function (test) {
     test.expect(2);
