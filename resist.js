@@ -13,7 +13,7 @@ var Config = require('config');
 // what you're doing.
 //
 var config = new Config(function () {
-  config.set("dod.net", {
+  config.setHost("dod.net", {
     "hostname"      : "darkside.dod.net",
     "remote_port"   : 80,
     "local_port"    : 8000,
@@ -96,7 +96,7 @@ util.puts(welcome);
       cache_ok = false;
     }
 
-    if (config.get('dod.net').memcached) {
+    if (config.getHost('dod.net').memcached) {
      // get our object out of memcached
     } else {
       if (cache[key_prefix + req.headers.host + req.url] &&
@@ -137,14 +137,14 @@ util.puts(welcome);
     }
 
     proxy.proxyRequest(req, res, {
-      host             : config.get('dod.net').hostname,
-      port             : config.get('dod.net').remote_port,
+      host             : config.getHost('dod.net').hostname,
+      port             : config.getHost('dod.net').remote_port,
       enableXForwarded : true,
       cacheOk          : cache_ok
     });
   });
 
-  http_server.listen(config.get('dod.net').local_port);
+  http_server.listen(config.getHost('dod.net').local_port);
 
   http_server.proxy.on('end', function (req, res, buffer) {
     var key_prefix = '';
@@ -155,7 +155,7 @@ util.puts(welcome);
 
     // if cache_ok was false, this is always 0
     if (buffer.length > 0) {
-      if (config.get('dod.net').memcached) {
+      if (config.getHost('dod.net').memcached) {
         // put results into memcached
       } else {
         // store results in memory
@@ -166,7 +166,7 @@ util.puts(welcome);
       }
 
       setTimeout(function () {
-        if (config.get('dod.net').memcached) {
+        if (config.getHost('dod.net').memcached) {
          // set results to timeout of memcached
         } else if (cache[key_prefix + req.headers.host + req.url]) {
           cache[key_prefix + req.headers.host + req.url].timeout = true;
@@ -174,9 +174,9 @@ util.puts(welcome);
           util.puts('setting ' + key_prefix + req.headers.host +
            req.url + ' to clear from cache.');
         }
-      }, config.get('dod.net').cache_timeout * 1000);
+      }, config.getHost('dod.net').cache_timeout * 1000);
 
-      if (!(config.get('dod.net').memcached)) {
+      if (!(config.getHost('dod.net').memcached)) {
         setTimeout(function () {
           if (cache[key_prefix + req.headers.host + req.url]) {
             delete cache[key_prefix + req.headers.host + req.url];
@@ -184,7 +184,7 @@ util.puts(welcome);
             util.puts('clearing ' + key_prefix + req.headers.host + req.url +
              ' from cache.');
           }
-        }, config.get('dod.net').clean_memory * 3600 * 1000);
+        }, config.getHost('dod.net').clean_memory * 3600 * 1000);
       }
     }
   });

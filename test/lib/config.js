@@ -49,47 +49,47 @@ exports.config = {
     test.isObject(this.config);
     test.done();
   },
-  'should have a get method' : function (test) {
+  'should have a getHost method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.config.get);
-    test.isFunction(this.config.get);
+    test.isNotNull(this.config.getHost);
+    test.isFunction(this.config.getHost);
     test.done();
   },
-  'get should return null with bad host' : function (test) {
-    var data = this.config.get('fail');
+  'getHost should return null with bad host' : function (test) {
+    var data = this.config.getHost('fail');
 
     test.expect(1);
     test.isNull(data);
     test.done();
   },
-  'get should return sane data' : function (test) {
+  'getHost should return sane data' : function (test) {
     var count = 0;
     var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
     gossiper.start();
 
     // jackass test, but we need to see the config move through
     // gossip protocol into our config object.
-    var test_get = function () {
-      var data = this.config.get('dod.net');
+    var test_get_host = function () {
+      var data = this.config.getHost('dod.net');
 
       if (data || count > 20) {
         test.expect(3);
         test.isNotNull(data);
         test.isObject(data);
-        test.equals(data.hostname, 'darkside.dod.net');
+        test.equals(data.hostname, 'foobar.dod.net');
         test.done();
 
         gossiper.stop();
       } else {
         count++;
-        setTimeout(test_get.bind(this), 1000);
+        setTimeout(test_get_host.bind(this), 1000);
       }
     };
 
-    setTimeout(test_get.bind(this), 1000);
+    setTimeout(test_get_host.bind(this), 1000);
 
     gossiper.setLocalState("dod.net", {
-      "hostname"      : "darkside.dod.net",
+      "hostname"      : "foobar.dod.net",
       "remote_port"   : 80,
       "local_port"    : 8000,
       "cache_timeout" : 300,
@@ -97,13 +97,13 @@ exports.config = {
       "memcached"     : false
     });
   },
-  'should have a set method' : function (test) {
+  'should have a setHost method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.config.set);
-    test.isFunction(this.config.set);
+    test.isNotNull(this.config.setHost);
+    test.isFunction(this.config.setHost);
     test.done();
   },
-  'set should mutate config local and on peers' : function (test) {
+  'setHost should mutate config local and on peers' : function (test) {
     var count = 0;
     var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
     gossiper.start(function () {
@@ -113,7 +113,7 @@ exports.config = {
         }
       });
 
-      this.config.set("dod.net", {
+      this.config.setHost("dod.net", {
         "hostname"      : "testing.dod.net",
         "remote_port"   : 80,
         "local_port"    : 8000,
@@ -125,7 +125,7 @@ exports.config = {
 
     // jackass test, but we need to see the config move through
     // gossip protocol to our peers.
-    var test_set = function () {
+    var test_set_host = function () {
       var data = gossiper.getLocalState("dod.net");
 
       if (data || count > 20) {
@@ -133,7 +133,7 @@ exports.config = {
         test.isNotNull(data);
         test.isObject(data);
         test.equals(data.hostname, 'testing.dod.net');
-        data = this.config.get('dod.net');
+        data = this.config.getHost('dod.net');
         test.isNotNull(data);
         test.isObject(data);
         test.equals(data.hostname, 'testing.dod.net');
@@ -142,11 +142,11 @@ exports.config = {
         gossiper.stop();
       } else {
         count++;
-        setTimeout(test_set.bind(this), 1000);
+        setTimeout(test_set_host.bind(this), 1000);
       }
     };
 
-    setTimeout(test_set.bind(this), 1000);
+    setTimeout(test_set_host.bind(this), 1000);
   },
   'should have a destroy method' : function (test) {
     test.expect(2);
