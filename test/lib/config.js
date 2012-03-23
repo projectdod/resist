@@ -1,6 +1,6 @@
-var Config = require("config"),
+var Config = require("../../lib/config"),
     Gossiper = require('gossiper').Gossiper,
-    stub = require("test/fixtures/stub");
+    stub = require("../fixtures/stub");
 
 var seed;
 

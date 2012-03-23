@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
-require.paths.push(__dirname);
-require.paths.push(__dirname + "/lib");
-
 var util = require('util');
 var http = require('http');
-var httpProxy = require('proxy');
-var Config = require('config');
+var httpProxy = require('./lib/proxy');
+var Config = require('./lib/config');
 
 //
 // You should not need to change anything below this line, unless you know

@@ -1,5 +1,5 @@
-var ResistCrypt = require("resist_crypt"),
-    stub = require("test/fixtures/stub");
+var ResistCrypt = require("../../lib/resist_crypt"),
+    stub = require("../fixtures/stub");
 
 function _set_up(callback) {
   this.backup = {};
