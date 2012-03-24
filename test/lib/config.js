@@ -63,7 +63,6 @@ exports.config = {
     test.done();
   },
   'getHost should return sane data' : function (test) {
-    var count = 0;
     var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
     gossiper.start();
 
@@ -72,30 +71,29 @@ exports.config = {
     var test_get_host = function () {
       var data = this.config.getHost('dod.net');
 
-      if (data || count > 20) {
+      if (data) {
         test.expect(3);
         test.isNotNull(data);
         test.isObject(data);
-        test.equals(data.hostname, 'foobar.dod.net');
+        test.equals(data.hostname, 'darkside.dod.net');
         test.done();
 
         gossiper.stop();
       } else {
-        count++;
-        setTimeout(test_get_host.bind(this), 1000);
+        setTimeout(test_get_host.bind(this), 500);
       }
     };
 
-    setTimeout(test_get_host.bind(this), 1000);
+    setTimeout(test_get_host.bind(this), 500);
 
-    gossiper.setLocalState("dod.net", {
-      "hostname"      : "foobar.dod.net",
+    gossiper.setLocalState("dod.net", JSON.stringify({
+      "hostname"      : "darkside.dod.net",
       "remote_port"   : 80,
       "local_port"    : 8000,
       "cache_timeout" : 300,
       "clean_memory"  : 2,
       "memcached"     : false
-    });
+    }));
   },
   'should have a setHost method' : function (test) {
     test.expect(2);
@@ -104,7 +102,6 @@ exports.config = {
     test.done();
   },
   'setHost should mutate config local and on peers' : function (test) {
-    var count = 0;
     var gossiper = new Gossiper(7002, ['127.0.0.1:7000'], '127.0.0.1');
     gossiper.start(function () {
       gossiper.on('update', function(peer, key, value) {
@@ -128,25 +125,23 @@ exports.config = {
     var test_set_host = function () {
       var data = gossiper.getLocalState("dod.net");
 
-      if (data || count > 20) {
-        test.expect(6);
+      if (data) {
+        data = JSON.parse(data);
+        test.expect(4);
         test.isNotNull(data);
-        test.isObject(data);
         test.equals(data.hostname, 'testing.dod.net');
         data = this.config.getHost('dod.net');
         test.isNotNull(data);
-        test.isObject(data);
         test.equals(data.hostname, 'testing.dod.net');
         test.done();
 
         gossiper.stop();
       } else {
-        count++;
-        setTimeout(test_set_host.bind(this), 1000);
+        setTimeout(test_set_host.bind(this), 500);
       }
     };
 
-    setTimeout(test_set_host.bind(this), 1000);
+    setTimeout(test_set_host.bind(this), 500);
   },
   'should have a destroy method' : function (test) {
     test.expect(2);
