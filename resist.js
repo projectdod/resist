@@ -16,14 +16,31 @@ var config;
 var cpus = os.cpus().length;
 
 if (cluster.isMaster) {
-  for (var i = 0; i < cpus; i++) {
+  var welcome = "\
+   +----------------------------------------------------------------------+\n\
+   |..REVERSE.CACHING.PROXY..............................  _  ............|\n\
+   |..................................................... | | ............|\n\
+   |..#### ...........#### .............................. |~| .......   ..|\n\
+   |..## ## ...#### ..## ## ......### ..#### ..## ......  |~|  _  _  /~) .|\n\
+   |..##  ## .##  ## .##  ## .....##### ## # ###### ...  /|_|.|-||-|/~/  .|\n\
+   |..##  ## .##  ## .##  ## .....##.## #### ..## ..... |~'   `-'`-'~/ ...|\n\
+   |..## ## ...#### ..## ## ..## .##.## ## ....## ..... \\ ) -\\_ .--  ) ...|\n\
+   |..#### ...........#### ...## .##.## #### ..## .....  \\_    Y    / ....|\n\
+   |.....................................................  \\   ^   / .....|\n\
+   +--------------------------------------------------------|~   ~|-------+\n\
+                              Be The Media\n";
+  util.puts(welcome);
+
+  for (var i = 0; i < 5; i++) {
     cluster.fork();
   }
 
   cluster.on('death', function(worker) {
-    console.log('worker ' + worker.pid + ' died');
+    util.puts('worker ' + worker.pid + ' died');
+    cluster.fork();
   });
 } else {
+  util.puts('worker ' + process.pid + ' started');
   config = new Config(function () {
     config.setHost("dod.net", {
       "hostname"      : "darkside.dod.net",
@@ -78,21 +95,6 @@ var mobile = new RegExp("(?:iPhone|iPod|Android|dream|CUPCAKE|blackberry|" +
   "webOS|incognito|webmate|s8000|bada)", 'i');
 
 function start_resist() {
-  var welcome = "\
-   +----------------------------------------------------------------------+\n\
-   |..REVERSE.CACHING.PROXY..............................  _  ............|\n\
-   |..................................................... | | ............|\n\
-   |..#### ...........#### .............................. |~| .......   ..|\n\
-   |..## ## ...#### ..## ## ......### ..#### ..## ......  |~|  _  _  /~) .|\n\
-   |..##  ## .##  ## .##  ## .....##### ## # ###### ...  /|_|.|-||-|/~/  .|\n\
-   |..##  ## .##  ## .##  ## .....##.## #### ..## ..... |~'   `-'`-'~/ ...|\n\
-   |..## ## ...#### ..## ## ..## .##.## ## ....## ..... \\ ) -\\_ .--  ) ...|\n\
-   |..#### ...........#### ...## .##.## #### ..## .....  \\_    Y    / ....|\n\
-   |.....................................................  \\   ^   / .....|\n\
-   +--------------------------------------------------------|~   ~|-------+\n\
-                              Be The Media\n";
-  util.puts(welcome);
-
   var http_server = httpProxy.createServer(function (req, res, proxy) {
     var key_prefix = '';
     var cache_ok = true;
@@ -142,8 +144,8 @@ function start_resist() {
         // util.puts('loading ' + key_prefix + req.headers.host + req.url +
         //     ' off of the origin server. ' + '(background)');
       } else {
-        util.puts('loading ' + key_prefix + req.headers.host + req.url +
-            ' off of the origin server.');
+        // util.puts('loading ' + key_prefix + req.headers.host + req.url +
+        //     ' off of the origin server.');
       }
     } else {
       // util.puts('loading ' + key_prefix + req.headers.host + req.url +
