@@ -1,0 +1,25 @@
+{
+  "name": "resist",
+  "description": "A Distributed Reverse Caching Proxy",
+  "version": "0.0.01",
+  "author": "Christopher Mooney <chris@dod.net>",
+  "contributors": [
+    { "name": "James Luedke", "email": "james@dod.net" }, 
+    { "name": "Bruce Bradley", "email": "suckjet@gmail.com" },
+    { "name": "John Lewis", "email": "detaer@gmail.com" }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/godsflaw/resist.git" 
+  },
+  "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
+  "dependencies": {
+    "memcached": "0.0.x"
+  },
+  "devDependencies": {
+  },
+  "main": "resist.js",
+  "bin": { "resist": "./resist.js" },
+  "scripts": { "test": "./runs_tests" },
+  "engines": { "node": "0.4.x || 0.5.x || 0.6.x || 0.7.x" }
+}
