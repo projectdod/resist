@@ -2,25 +2,41 @@
 
 var util = require('util');
 var http = require('http');
+var cluster = require('cluster');
 var httpProxy = require('./lib/proxy');
 var Config = require('./lib/config');
+var os = require('os');
+
 
 //
 // You should not need to change anything below this line, unless you know
 // what you're doing.
 //
-var config = new Config(function () {
-  config.setHost("dod.net", {
-    "hostname"      : "darkside.dod.net",
-    "remote_port"   : 80,
-    "local_port"    : 8000,
-    "cache_timeout" : 300,
-    "clean_memory"  : 2,
-    "memcached"     : false
-  });
+var config;
+var cpus = os.cpus().length;
 
-  start_resist();
-});
+if (cluster.isMaster) {
+  for (var i = 0; i < cpus; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('death', function(worker) {
+    console.log('worker ' + worker.pid + ' died');
+  });
+} else {
+  config = new Config(function () {
+    config.setHost("dod.net", {
+      "hostname"      : "darkside.dod.net",
+      "remote_port"   : 80,
+      "local_port"    : 8000,
+      "cache_timeout" : 300,
+      "clean_memory"  : 2,
+      "memcached"     : false
+    });
+
+    start_resist();
+  });
+}
 
 var cache = new Object();
 // Hardcoded regex for host+url nocache detection
@@ -75,7 +91,8 @@ function start_resist() {
    |.....................................................  \\   ^   / .....|\n\
    +--------------------------------------------------------|~   ~|-------+\n\
                               Be The Media\n";
-util.puts(welcome);
+  util.puts(welcome);
+
   var http_server = httpProxy.createServer(function (req, res, proxy) {
     var key_prefix = '';
     var cache_ok = true;
@@ -104,8 +121,8 @@ util.puts(welcome);
     }
 
     if (cache_ok && buffer) {
-      util.puts('loading ' + key_prefix + req.headers.host + req.url +
-        ' out of cache.');
+      // util.puts('loading ' + key_prefix + req.headers.host + req.url +
+      //     ' out of cache.');
 
       res.end(buffer);
 
@@ -122,15 +139,15 @@ util.puts(welcome);
 
     if (cache_ok) {
       if (timeout) {
-        util.puts('loading ' + key_prefix + req.headers.host + req.url +
-          ' off of the origin server. ' + '(background)');
+        // util.puts('loading ' + key_prefix + req.headers.host + req.url +
+        //     ' off of the origin server. ' + '(background)');
       } else {
         util.puts('loading ' + key_prefix + req.headers.host + req.url +
-          ' off of the origin server.');
+            ' off of the origin server.');
       }
     } else {
-      util.puts('loading ' + key_prefix + req.headers.host + req.url +
-        ' off of the origin server. ' + '(nocache)');
+      // util.puts('loading ' + key_prefix + req.headers.host + req.url +
+      //     ' off of the origin server. ' + '(nocache)');
     }
 
     proxy.proxyRequest(req, res, {
@@ -168,8 +185,8 @@ util.puts(welcome);
         } else if (cache[key_prefix + req.headers.host + req.url]) {
           cache[key_prefix + req.headers.host + req.url].timeout = true;
 
-          util.puts('setting ' + key_prefix + req.headers.host +
-           req.url + ' to clear from cache.');
+          //util.puts('setting ' + key_prefix + req.headers.host +
+          //    req.url + ' to clear from cache.');
         }
       }, config.getHost('dod.net').cache_timeout * 1000);
 
@@ -178,8 +195,8 @@ util.puts(welcome);
           if (cache[key_prefix + req.headers.host + req.url]) {
             delete cache[key_prefix + req.headers.host + req.url];
 
-            util.puts('clearing ' + key_prefix + req.headers.host + req.url +
-             ' from cache.');
+            // util.puts('clearing ' + key_prefix + req.headers.host + req.url +
+            //     ' from cache.');
           }
         }, config.getHost('dod.net').clean_memory * 3600 * 1000);
       }
