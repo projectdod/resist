@@ -28,14 +28,11 @@
   "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
   "dependencies": {
     "memcached"   : ">= 0.0.0",
-    "msgpack"     : "git://github.com/godsflaw/node-msgpack.git",
     "gossiper"    : "git://github.com/godsflaw/node-gossip.git",
     "nodeunit"    : "git://github.com/godsflaw/nodeunit.git"
   },
-  "devDependencies": {
-  },
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
-  "scripts": { "test": "./runs_tests" },
+  "scripts": { "test": "./run_tests" },
   "engines": { "node": "0.4.x || 0.5.x || 0.6.x || 0.7.x" }
 }
