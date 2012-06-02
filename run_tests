@@ -2,15 +2,16 @@
 
 try {
   var reporter = require('nodeunit').reporters.default;
+  var msgpack = require('msgpack');
+  var gossiper = require('gossiper');
 }
 catch(e) {
   console.log(e.message);
   console.log("");
-  console.log("Cannot find nodeunit module.");
-  console.log("You can download submodules for this project by doing:");
+  console.log("Cannot find required modules.");
+  console.log("You can intall modules for this project by doing:");
   console.log("");
-  console.log("    git submodule init");
-  console.log("    git submodule update");
+  console.log("    npm install");
   console.log("");
   process.exit();
 }

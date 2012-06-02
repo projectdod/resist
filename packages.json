@@ -1,12 +1,25 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.0.01",
+  "version": "0.0.1",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
-    { "name": "James Luedke", "email": "james@dod.net" }, 
-    { "name": "Bruce Bradley", "email": "suckjet@gmail.com" },
-    { "name": "John Lewis", "email": "detaer@gmail.com" }
+    {
+      "name": "Christopher Mooney",
+      "email": "chris@dod.net"
+    }, 
+    {
+      "name": "James Luedke",
+      "email": "james@dod.net"
+    }, 
+    {
+      "name": "Bruce Bradley",
+      "email": "suckjet@gmail.com"
+    },
+    {
+      "name": "John Lewis",
+      "email": "detaer@gmail.com"
+    }
   ],
   "repository": {
     "type": "git",
@@ -14,7 +27,10 @@
   },
   "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
   "dependencies": {
-    "memcached": "0.0.x"
+    "memcached"   : ">= 0.0.0",
+    "msgpack"     : "git://github.com/godsflaw/node-msgpack.git",
+    "gossiper"    : "git://github.com/godsflaw/node-gossip.git",
+    "nodeunit"    : "git://github.com/godsflaw/nodeunit.git"
   },
   "devDependencies": {
   },
