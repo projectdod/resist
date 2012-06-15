@@ -1,25 +1,13 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
     {
       "name": "Christopher Mooney",
       "email": "chris@dod.net"
-    }, 
-    {
-      "name": "James Luedke",
-      "email": "james@dod.net"
-    }, 
-    {
-      "name": "Bruce Bradley",
-      "email": "suckjet@gmail.com"
-    },
-    {
-      "name": "John Lewis",
-      "email": "detaer@gmail.com"
-    }
+    } 
   ],
   "repository": {
     "type": "git",
@@ -27,12 +15,15 @@
   },
   "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
   "dependencies": {
-    "memcached"   : ">= 0.0.0",
-    "gossiper"    : "git://github.com/godsflaw/node-gossip.git",
-    "nodeunit"    : "git://github.com/godsflaw/nodeunit.git"
+    "http-proxy"      : ">= 0.0.0",
+    "memcached"       : ">= 0.0.0",
+    "gossiper"        : "https://github.com/godsflaw/node-gossip/tarball/master"
+  },
+  "optionalDependencies": {
+    "nodeunit"        : "https://github.com/godsflaw/nodeunit/tarball/master"
   },
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
   "scripts": { "test": "./run_tests" },
-  "engines": { "node": "0.4.x || 0.5.x || 0.6.x || 0.7.x" }
+  "engines": { "node": "0.6.x || 0.7.x" }
 }

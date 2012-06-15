@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-var util = require('util');
-var http = require('http');
-var cluster = require('cluster');
-var os = require('os');
-var Memcached = require('memcached');
-var httpProxy = require('./lib/proxy');
-var Config = require('./lib/config');
+var util      = require('util'),
+    http      = require('http'),
+    cluster   = require('cluster'),
+    os        = require('os'),
+    Memcached = require('memcached'),
+    httpProxy = require('http-proxy'),
+    Config    = require('./lib/config');
 
 // Hardcoded regex for host+url nocache detection
 //
@@ -51,6 +51,7 @@ var mobile = new RegExp("(?:iPhone|iPod|Android|dream|CUPCAKE|blackberry|" +
 // what you're doing.
 //
 var config;
+var memcached;
 var cpus = os.cpus().length;
 var cache = new Object();
 
@@ -80,6 +81,8 @@ if (cluster.isMaster) {
   });
 } else {
   util.puts('worker ' + process.pid + ': started');
+  // godsflaw: This is just bootstrapping.  Normally this will not be in
+  // production versions.
   config = new Config(function () {
     config.setHost("dod.net", {
       "hostname"         : "darkside.dod.net",
@@ -88,6 +91,7 @@ if (cluster.isMaster) {
       "local_port"       : 8000,
       "cache_timeout"    : 300,
       "clean_memory"     : 2,
+      "max_sockets"      : 20000,
       "memcached"        : false
     });
 
@@ -96,13 +100,26 @@ if (cluster.isMaster) {
 }
 
 function startResist() {
-  var memcached;
-
   if (config.getHost('dod.net').memcached) {
     memcached = new Memcached('127.0.0.1:11211');
+    memcached.on('issue', function(details) {
+      console.error("got issue");
+    });
+    memcached.on('reconnected', function(details) {
+      console.error("got reconnected");
+    });
+    memcached.on('remove', function(details) {
+      console.error("got remove");
+    });
+    memcached.on('failure', function(details) {
+      console.error("got failure");
+    });
+    memcached.on('reconnecting', function(details) {
+      console.error("got reconnecting");
+    });
   }
 
-  var httpServer = httpProxy.createServer(function (req, res, proxy) {
+  var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var keyPrefix = '';
     var cacheOk = true;
     var buffer = false;
@@ -119,9 +136,13 @@ function startResist() {
       cacheOk = false;
     }
 
+    var reqBuffer = httpProxy.buffer(req);
+    var resBuffer = httpProxy.buffer(res);
+
     if (config.getHost('dod.net').memcached) {
       // get our object out of memcached
-      memcached.get(keyPrefix+req.headers.host+req.url, function(err, result) {
+      var requestKey = keyPrefix+req.headers.host+req.url;
+      memcached.get(requestKey, function(err, result) {
         if (err) {
           console.error(err);
         } else if (result) {
@@ -129,8 +150,7 @@ function startResist() {
           timeout = result.timeout;
         }
 
-        _sendResult(res, req, proxy, cacheOk, buffer, timeout);
-        proxy.on('end', _handleResponse);
+        _sendResult(res, req, proxy, cacheOk, buffer, timeout, reqBuffer);
       }); 
     } else {
       // get our object out of memory
@@ -140,15 +160,14 @@ function startResist() {
         timeout = cache[keyPrefix + req.headers.host + req.url].timeout;
       }
 
-      _sendResult(res, req, proxy, cacheOk, buffer, timeout);
-      proxy.on('end', _handleResponse);
+      _sendResult(res, req, proxy, cacheOk, buffer, timeout, reqBuffer);
     }
   });
 
-  httpServer.listen(config.getHost('dod.net').local_port);
+  httpProxyServer.listen(config.getHost('dod.net').local_port);
 }
 
-function _sendResult(res, req, proxy, cacheOk, buffer, timeout) {
+function _sendResult(res, req, proxy, cacheOk, buffer, timeout, reqBuffer) {
   if (cacheOk && buffer) {
     res.end(buffer);
 
@@ -167,10 +186,21 @@ function _sendResult(res, req, proxy, cacheOk, buffer, timeout) {
     host             : config.getHost('dod.net').hostname,
     port             : config.getHost('dod.net').remote_port,
     enableXForwarded : config.getHost('dod.net').x_forwarded_for,
+    maxSockets       : config.getHost('dod.net').max_sockets,
+    buffer           : reqBuffer,
     cacheOk          : cacheOk
   };
 
+  // Use some trick like this to get at the data for caching.
+  //var _write = res.write;
+
+  //res.write = function (data) {
+  //    console.log(data.toString());
+  //    _write.call(res, data);
+  //}
+
   proxy.proxyRequest(req, res, options);
+  proxy.on('end', _handleResponse);
 }
 
 function _handleResponse(req, res, buffer) {
@@ -181,7 +211,7 @@ function _handleResponse(req, res, buffer) {
   }
 
   // if cacheOk was false, this is always 0
-  if (buffer.length > 0) {
+  if (buffer && buffer.length > 0) {
     var data = {
       'buffer'    : buffer,
       'timeout'   : false
@@ -189,8 +219,12 @@ function _handleResponse(req, res, buffer) {
 
     if (config.getHost('dod.net').memcached) {
       // put results into memcached
-      memcached.set(keyPrefix+req.headers.host+req.url, data, 0,
-        function(err, result) { if (err) console.error(err); }); 
+      var requestKey = keyPrefix+req.headers.host+req.url;
+      memcached.set(requestKey, data, 0, function(err, result) {
+        if (err) {
+          console.error(err);
+        }
+      }); 
     } else {
       // store results in memory
       cache[keyPrefix + req.headers.host + req.url] = data;
@@ -207,8 +241,12 @@ function _handleResponse(req, res, buffer) {
 
       if (config.getHost('dod.net').memcached) {
         // set results to timeout of memcached
-        memcached.set(keyPrefix+req.headers.host+req.url, data, 0,
-          function(err, result) { if (err) console.error(err); }); 
+        var requestKey = keyPrefix+req.headers.host+req.url;
+        memcached.set(requestKey, data, 0, function(err, result) {
+          if (err) {
+            console.error(err);
+          }
+        }); 
       } else if (cache[keyPrefix + req.headers.host + req.url]) {
         cache[keyPrefix + req.headers.host + req.url] = data;
       }
