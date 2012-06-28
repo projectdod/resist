@@ -5,7 +5,7 @@ var util      = require('util'),
     cluster   = require('cluster'),
     os        = require('os'),
     httpProxy = require('http-proxy'),
-    Cache     = require('./lib/cache'),
+    HttpCache = require('./lib/http_cache'),
     Config    = require('./lib/config');
 
 //
@@ -59,34 +59,37 @@ if (cluster.isMaster) {
       "local_port"       : 8000
     });
 
-    startResist();
+    startResistProxy();
   });
 }
 
-function startResist() {
-  var cacheOptions = {
-    "type"      : config.getHost('dod.net').cacheType,
-    "host"      : '127.0.0.1:11211'
-  };
-
-  var cache = new Cache(cacheOptions);
-
+function startResistProxy() {
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
+    var cacheOptions = {
+      "type" : config.getHost('dod.net').cacheType,
+      "host" : '127.0.0.1:11211'
+    };
+    var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
-    var resBuffer = cache.get(req);
+    var result = cache.get(req);
 
-    if (resBuffer) {
-      res.end(resBuffer);
+    if (result) {
+      if (result.reason) {
+        res.writeHead(result.code, result.reason, result.headers);
+      } else {
+        res.writeHead(result.code, result.headers);
+      }
+
+      res.write(result.body);
+      res.end();
 
       // If we don't have to fetch again, just return here.  So fast!
       if (!cache.isStale()) {
         return;
       }
 
-// XXX: rewrite got here.
-
       // Oh this is total hacks so we don't have to change the core lib
-      res.writeHead = function (arg1, arg2) {};
+      res.writeHead = function () {};
       res.write     = function () {};
       res.end       = function () {};
     }
@@ -101,66 +104,57 @@ function startResist() {
 
     // Use some trick like this to get at the data for caching.
     var _write = res.write;
+    var _writeHead = res.writeHead;
+    var _end = res.end;
+
+    res.writeHead = function (code, reason, headers) {
+        var code = arguments[0];
+        var headers = arguments[1];
+        var reason;
+
+        if (arguments.length === 3) {
+          reason = arguments[1];
+          headers = arguments[2];
+        }
+
+console.log(code);
+console.log(reason);
+console.log(headers.toString());
+
+        cache.setCode(code);
+        cache.setReason(reason);
+        cache.setHeaders(headers);
+
+        if (reason) {
+          _writeHead.call(res, code, reason, headers);
+        } else {
+          _writeHead.call(res, code, headers);
+        }
+    }
 
     res.write = function (data) {
-        console.log(data.toString());
+console.log(data.toString());
+        cache.setBody(data);
         _write.call(res, data);
     }
 
+    res.end = function (data) {
+        if (arguments.length > 0) {
+console.log(data.toString());
+          cache.setBody(data);
+          _end.call(res, data);
+        } else {
+console.log("res.end() called");
+          _end.call(res);
+        }
+    }
+
+    res.on('finish', function () {
+      cache.set(req);
+    };
+
     proxy.proxyRequest(req, res, proxyOptions);
-    res.on('finish', _handleResponse);
   });
 
   httpProxyServer.listen(config.getHost('0xDEADBEEF').local_port);
-}
-
-function _handleResponse(req, res, buffer) {
-  var keyPrefix = '';
-
-  if (mobile.test(req.headers['user-agent'])) {
-    keyPrefix = 'mobile-';
-  }
-
-  // if cacheOk was false, this is always 0
-  if (buffer && buffer.length > 0) {
-    var data = {
-      'buffer'    : buffer,
-      'timeout'   : false
-    };
-
-    if (config.getHost('dod.net').memcached) {
-      // put results into memcached
-      var requestKey = keyPrefix+req.headers.host+req.url;
-      memcached.set(requestKey, data, 0, function(err, result) {
-        if (err) {
-          console.error(err);
-        }
-      }); 
-    } else {
-      // store results in memory
-      cache[keyPrefix + req.headers.host + req.url] = data;
-
-      setTimeout(function () {
-        if (cache[keyPrefix + req.headers.host + req.url]) {
-          delete cache[keyPrefix + req.headers.host + req.url];
-        }
-      }, config.getHost('dod.net').clean_memory * 3600 * 1000);
-    }
-
-    setTimeout(function () {
-      data.timeout = true;
-
-      if (config.getHost('dod.net').memcached) {
-        // set results to timeout of memcached
-        var requestKey = keyPrefix+req.headers.host+req.url;
-        memcached.set(requestKey, data, 0, function(err, result) {
-          if (err) {
-            console.error(err);
-          }
-        }); 
-      } else if (cache[keyPrefix + req.headers.host + req.url]) {
-        cache[keyPrefix + req.headers.host + req.url] = data;
-      }
-    }, config.getHost('dod.net').cache_timeout * 1000);
-  }
 }
