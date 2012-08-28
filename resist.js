@@ -66,8 +66,9 @@ if (cluster.isMaster) {
 function startResistProxy() {
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
-      "type" : config.getHost('dod.net').cacheType,
-      "host" : '127.0.0.1:11211'
+      "type"        : config.getHost('dod.net').cacheType,
+      "host"        : '127.0.0.1:11211',
+      "cleanMemory" : config.getHost('dod.net').clean_memory 
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
@@ -130,13 +131,13 @@ console.log(headers.toString());
         } else {
           _writeHead.call(res, code, headers);
         }
-    }
+    };
 
     res.write = function (data) {
 console.log(data.toString());
         cache.setBody(data);
         _write.call(res, data);
-    }
+    };
 
     res.end = function (data) {
         if (arguments.length > 0) {
@@ -147,11 +148,11 @@ console.log(data.toString());
 console.log("res.end() called");
           _end.call(res);
         }
-    }
+    };
 
     res.on('finish', function () {
       cache.set(req);
-    };
+    });
 
     proxy.proxyRequest(req, res, proxyOptions);
   });

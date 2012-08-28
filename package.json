@@ -1,7 +1,7 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
     {
@@ -25,5 +25,5 @@
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
   "scripts": { "test": "./run_tests" },
-  "engines": { "node": "0.6.x || 0.7.x" }
+  "engines": { "node": "0.8.x || 0.9.x" }
 }
