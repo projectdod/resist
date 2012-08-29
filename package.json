@@ -1,7 +1,7 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
     {
@@ -17,7 +17,7 @@
   "dependencies": {
     "http-proxy"      : ">= 0.0.0",
     "memcached"       : ">= 0.0.0",
-    "gossiper"        : "https://github.com/godsflaw/node-gossip/tarball/master"
+    "gossiper"        : ">= 0.0.0"
   },
   "optionalDependencies": {
     "nodeunit"        : "https://github.com/godsflaw/nodeunit/tarball/master"
