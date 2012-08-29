@@ -64,17 +64,21 @@ if (cluster.isMaster) {
 }
 
 function startResistProxy() {
+  var storage = new Object();
+
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
-      "type"        : config.getHost('dod.net').cacheType,
-      "host"        : '127.0.0.1:11211',
-      "cleanMemory" : config.getHost('dod.net').clean_memory 
+      "type"         : config.getHost('dod.net').cacheType,
+      "host"         : '127.0.0.1:11211',
+      "cache"        : storage,
+      "cacheTimeout" : config.getHost('dod.net').cache_timeout,
+      "cleanMemory"  : config.getHost('dod.net').clean_memory 
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
     var result = cache.get(req);
 
-    if (result) {
+    if (result && !cache.isStale()) {
       if (result.reason) {
         res.writeHead(result.code, result.reason, result.headers);
       } else {
@@ -84,15 +88,8 @@ function startResistProxy() {
       res.write(result.body);
       res.end();
 
-      // If we don't have to fetch again, just return here.  So fast!
-      if (!cache.isStale()) {
-        return;
-      }
-
-      // Oh this is total hacks so we don't have to change the core lib
-      res.writeHead = function () {};
-      res.write     = function () {};
-      res.end       = function () {};
+      // Right out of cache. So fast!
+      return;
     }
 
     var proxyOptions = {
@@ -118,10 +115,6 @@ function startResistProxy() {
           headers = arguments[2];
         }
 
-console.log(code);
-console.log(reason);
-console.log(headers.toString());
-
         cache.setCode(code);
         cache.setReason(reason);
         cache.setHeaders(headers);
@@ -134,24 +127,21 @@ console.log(headers.toString());
     };
 
     res.write = function (data) {
-console.log(data.toString());
         cache.setBody(data);
         _write.call(res, data);
     };
 
     res.end = function (data) {
         if (arguments.length > 0) {
-console.log(data.toString());
           cache.setBody(data);
           _end.call(res, data);
         } else {
-console.log("res.end() called");
           _end.call(res);
         }
     };
 
     res.on('finish', function () {
-      cache.set(req);
+      cache.set(res);
     });
 
     proxy.proxyRequest(req, res, proxyOptions);
