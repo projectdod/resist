@@ -63,8 +63,19 @@ if (cluster.isMaster) {
   });
 }
 
+function sendCachedResponse(res, cachedRes) {
+  if (cachedRes.reason) {
+    res.writeHead(cachedRes.code, cachedRes.reason, cachedRes.headers);
+  } else {
+    res.writeHead(cachedRes.code, cachedRes.headers);
+  }
+
+  res.write(cachedRes.body);
+  res.end();
+}
+
 function startResistProxy() {
-  var storage = new Object();
+  var storage = {};
 
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
@@ -79,16 +90,8 @@ function startResistProxy() {
     var result = cache.get(req);
 
     if (result && !cache.isStale()) {
-      if (result.reason) {
-        res.writeHead(result.code, result.reason, result.headers);
-      } else {
-        res.writeHead(result.code, result.headers);
-      }
-
-      res.write(result.body);
-      res.end();
-
       // Right out of cache. So fast!
+      sendCachedResponse(res, result);
       return;
     }
 
@@ -109,6 +112,17 @@ function startResistProxy() {
         var code = arguments[0];
         var headers = arguments[1];
         var reason;
+
+        // If we get an error response, and we have an old cached value that
+        // is a non-error response, we should use that.
+        if (code >= 400 && result && result.code < 400) {
+          // reset these back to normal before we push cache out
+          res.write = _write;
+          res.writeHead = _writeHead;
+          res.end = _end;
+          sendCachedResponse(res, result);
+          return;
+        }
 
         if (arguments.length === 3) {
           reason = arguments[1];
