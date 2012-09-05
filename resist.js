@@ -52,25 +52,21 @@ if (cluster.isMaster) {
       "cache_timeout"    : 300,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
-      "cacheType"        : 'local'
-    });
-
-    config.setHost("0xDEADBEEF", {
-      "local_port"       : 8000
+      "cacheType"        : 'memcached'
     });
 
     startResistProxy();
   });
 }
 
-function sendCachedResponse(res, cachedRes) {
-  if (cachedRes.reason) {
-    res.writeHead(cachedRes.code, cachedRes.reason, cachedRes.headers);
+function sendCachedResponse(res, cachedData) {
+  if (cachedData.reason) {
+    res.writeHead(cachedData.code, cachedData.reason, cachedData.headers);
   } else {
-    res.writeHead(cachedRes.code, cachedRes.headers);
+    res.writeHead(cachedData.code, cachedData.headers);
   }
 
-  res.write(cachedRes.body);
+  res.write(cachedData.body);
   res.end();
 }
 
@@ -87,79 +83,80 @@ function startResistProxy() {
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
-    var result = cache.get(req);
 
-    if (result && !cache.isStale()) {
-      // Right out of cache. So fast!
-      sendCachedResponse(res, result);
-      return;
-    }
+    cache.get(req, function (result) {
+      if (result && !cache.isStale()) {
+        // Right out of cache. So fast!
+        sendCachedResponse(res, result);
+        return;
+      }
 
-    var proxyOptions = {
-      host             : config.getHost('dod.net').hostname,
-      port             : config.getHost('dod.net').remote_port,
-      enableXForwarded : config.getHost('dod.net').x_forwarded_for,
-      maxSockets       : config.getHost('dod.net').max_sockets,
-      buffer           : reqBuffer
-    };
+      var proxyOptions = {
+        host             : config.getHost('dod.net').hostname,
+        port             : config.getHost('dod.net').remote_port,
+        enableXForwarded : config.getHost('dod.net').x_forwarded_for,
+        maxSockets       : config.getHost('dod.net').max_sockets,
+        buffer           : reqBuffer
+      };
 
-    // Use some trick like this to get at the data for caching.
-    var _write = res.write;
-    var _writeHead = res.writeHead;
-    var _end = res.end;
+      // Use some trick like this to get at the data for caching.
+      var _write = res.write;
+      var _writeHead = res.writeHead;
+      var _end = res.end;
 
-    res.writeHead = function (code, reason, headers) {
-        var code = arguments[0];
-        var headers = arguments[1];
-        var reason = undefined;
+      res.writeHead = function (code, reason, headers) {
+          var code = arguments[0];
+          var headers = arguments[1];
+          var reason = undefined;
 
-        // If we get an error response, and we have an old cached value that
-        // is a non-error response, we should use that.
-        if (code >= 400 && result && result.code < 400) {
-          // reset these back to normal before we push cache out
-          res.write = _write;
-          res.writeHead = _writeHead;
-          res.end = _end;
-          sendCachedResponse(res, result);
-          return;
-        }
+          // If we get an error response, and we have an old cached value that
+          // is a non-error response, we should use that.
+          if (code >= 400 && result && result.code < 400) {
+            // reset these back to normal before we push cache out
+            res.write = _write;
+            res.writeHead = _writeHead;
+            res.end = _end;
+            sendCachedResponse(res, result);
+            return;
+          }
 
-        if (arguments.length === 3) {
-          reason = arguments[1];
-          headers = arguments[2];
-        }
+          if (arguments.length === 3) {
+            reason = arguments[1];
+            headers = arguments[2];
+          }
 
-        cache.setCode(code);
-        cache.setReason(reason);
-        cache.setHeaders(headers);
+          cache.setCode(code);
+          cache.setReason(reason);
+          cache.setHeaders(headers);
 
-        if (reason) {
-          _writeHead.call(res, code, reason, headers);
-        } else {
-          _writeHead.call(res, code, headers);
-        }
-    };
+          if (reason) {
+            _writeHead.call(res, code, reason, headers);
+          } else {
+            _writeHead.call(res, code, headers);
+          }
+      };
 
-    res.write = function (data) {
-        cache.setBody(data);
-        _write.call(res, data);
-    };
-
-    res.end = function (data) {
-        if (arguments.length > 0) {
+      res.write = function (data) {
           cache.setBody(data);
-          _end.call(res, data);
-        } else {
-          _end.call(res);
-        }
-    };
+          _write.call(res, data);
+      };
 
-    res.on('finish', function () {
-      cache.set(res);
+      res.end = function (data) {
+          if (arguments.length > 0) {
+            cache.setBody(data);
+            _end.call(res, data);
+          } else {
+            _end.call(res);
+          }
+      };
+
+      res.on('finish', function () {
+        cache.set(res);
+      });
+
+      proxy.proxyRequest(req, res, proxyOptions);
     });
-
-    proxy.proxyRequest(req, res, proxyOptions);
   });
 
-  httpProxyServer.listen(config.getHost('0xDEADBEEF').local_port);
+  httpProxyServer.listen(config.getHost('dod.net').local_port);
 }
