@@ -111,7 +111,7 @@ function startResistProxy() {
     res.writeHead = function (code, reason, headers) {
         var code = arguments[0];
         var headers = arguments[1];
-        var reason;
+        var reason = undefined;
 
         // If we get an error response, and we have an old cached value that
         // is a non-error response, we should use that.
