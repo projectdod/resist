@@ -6,7 +6,7 @@ function _set_up(callback) {
   this.backup.jsonParse = JSON.parse;
 
   var cacheOptions = {
-    "cache"        : {}
+    "type" : "local"
   };
   this.httpCache = new HttpCache(cacheOptions);
 
@@ -58,10 +58,23 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getVersion);
     test.done();
   },
+  'getVersion should return correct value' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getVersion);
+    test.equal(this.httpCache.getVersion(), 1);
+    test.done();
+  },
   'should have getVersionPrefix method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getVersionPrefix);
     test.isFunction(this.httpCache.getVersionPrefix);
+    test.done();
+  },
+  'getVersionPrefix should return correct value' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getVersionPrefix);
+    test.equal(this.httpCache.getVersionPrefix(),
+      "v" + this.httpCache.getVersion() + ":");
     test.done();
   },
   'should have getMobilePrefix method' : function (test) {
@@ -70,10 +83,23 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getMobilePrefix);
     test.done();
   },
+  'getMobilePrefix should return correct value' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getMobilePrefix);
+    test.equal(this.httpCache.getMobilePrefix(), "m:");
+    test.done();
+  },
   'should have getCleanMemory method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getCleanMemory);
     test.isFunction(this.httpCache.getCleanMemory);
+    test.done();
+  },
+  'getCleanMemory should return default no options' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getCleanMemory);
+    // Though it was better to test the default value by hand here
+    test.equal(this.httpCache.getCleanMemory(), 1);
     test.done();
   },
   'should have setCleanMemory method' : function (test) {
@@ -82,10 +108,37 @@ exports.http_cache = {
     test.isFunction(this.httpCache.setCleanMemory);
     test.done();
   },
+  'getCleanMemory should return option from constructor' : function (test) {
+    test.expect(3);
+    var cacheOptions = {
+      "type"        : "local",
+      "cleanMemory" : 5
+    };
+    this.httpCache = new HttpCache(cacheOptions);
+    test.isNotNull(this.httpCache);
+    test.isNotNull(this.httpCache.getCleanMemory);
+    test.equal(this.httpCache.getCleanMemory(), 5);
+    test.done();
+  },
+  'setCleanMemory should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getCleanMemory);
+    test.isNotNull(this.httpCache.setCleanMemory);
+    test.equal(this.httpCache.getCleanMemory(), 1);
+    this.httpCache.setCleanMemory(5);
+    test.equal(this.httpCache.getCleanMemory(), 5);
+    test.done();
+  },
   'should have getCode method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getCode);
     test.isFunction(this.httpCache.getCode);
+    test.done();
+  },
+  'getCode will be undef if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getCode);
+    test.isUndefined(this.httpCache.getCode());
     test.done();
   },
   'should have setCode method' : function (test) {
@@ -94,10 +147,25 @@ exports.http_cache = {
     test.isFunction(this.httpCache.setCode);
     test.done();
   },
+  'setCode should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getCode);
+    test.isNotNull(this.httpCache.setCode);
+    test.isUndefined(this.httpCache.getCode());
+    this.httpCache.setCode(200);
+    test.equal(this.httpCache.getCode(), 200);
+    test.done();
+  },
   'should have getReason method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getReason);
     test.isFunction(this.httpCache.getReason);
+    test.done();
+  },
+  'getReason will be undef if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getReason);
+    test.isUndefined(this.httpCache.getReason());
     test.done();
   },
   'should have setReason method' : function (test) {
@@ -106,10 +174,25 @@ exports.http_cache = {
     test.isFunction(this.httpCache.setReason);
     test.done();
   },
+  'setReason should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getReason);
+    test.isNotNull(this.httpCache.setReason);
+    test.isUndefined(this.httpCache.getReason());
+    this.httpCache.setReason("This is OK");
+    test.equal(this.httpCache.getReason(), "This is OK");
+    test.done();
+  },
   'should have getHeaders method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getHeaders);
     test.isFunction(this.httpCache.getHeaders);
+    test.done();
+  },
+  'getHeaders will be undef if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getHeaders);
+    test.isUndefined(this.httpCache.getHeaders());
     test.done();
   },
   'should have setHeaders method' : function (test) {
@@ -118,10 +201,26 @@ exports.http_cache = {
     test.isFunction(this.httpCache.setHeaders);
     test.done();
   },
+  'setHeaders should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getHeaders);
+    test.isNotNull(this.httpCache.setHeaders);
+    test.isUndefined(this.httpCache.getHeaders());
+    this.httpCache.setHeaders({ 'cache-control' : 'test' });
+    test.deepEqual(this.httpCache.getHeaders(), { 'cache-control' : 'test' });
+    test.done();
+  },
   'should have getBody method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getBody);
     test.isFunction(this.httpCache.getBody);
+    test.done();
+  },
+  'getBody will be an empty Buffer if not set' : function (test) {
+    test.expect(3);
+    test.isNotNull(this.httpCache.getBody);
+    test.isBuffer(this.httpCache.getBody());
+    test.equal(this.httpCache.getBody().toString(), "");
     test.done();
   },
   'should have setBody method' : function (test) {

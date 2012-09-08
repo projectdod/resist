@@ -3,6 +3,7 @@
 try {
   var reporter = require('nodeunit').reporters.default;
   var gossiper = require('gossiper');
+  var memcached = require('memcached');
 }
 catch(e) {
   console.log(e.message);
@@ -16,4 +17,9 @@ catch(e) {
 }
 
 process.chdir(__dirname);
-reporter.run(['test', 'test/lib']);
+
+if (process.argv[2]) {
+  reporter.run(process.argv.slice(2, process.argv.length));
+} else {
+  reporter.run(['test', 'test/lib']);
+}
