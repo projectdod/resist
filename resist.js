@@ -29,8 +29,9 @@ if (cluster.isMaster) {
    |.....................................................  \\   ^   / .....|\n\
    +--------------------------------------------------------|~   ~|-------+\n\
                               Be The Media\n";
-  util.puts(welcome);
+//  util.puts(welcome);
 
+cpus = 1;
   for (var i = 0; i < cpus; i++) {
     cluster.fork();
   }
@@ -45,14 +46,15 @@ if (cluster.isMaster) {
   // production versions.
   config = new Config(function () {
     config.setHost("dod.net", {
-      "hostname"         : "darkside.dod.net",
+      "hostname"         : "208.78.244.151",
       "remote_port"      : 80,
       "x_forwarded_for"  : true,
-      "local_port"       : 8000,
-      "cache_timeout"    : 300,
+      "local_port"       : 80,
+      "cache_timeout"    : 30,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
-      "cacheType"        : 'memcached'
+      "cacheType"        : 'local',
+      "cacheHost"        : '10.41.54.133:11211'
     });
 
     startResistProxy();
@@ -71,33 +73,24 @@ function sendCachedResponse(res, cachedData) {
 }
 
 function startResistProxy() {
-  var storage = {};
-
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
       "type"         : config.getHost('dod.net').cacheType,
-      "host"         : '127.0.0.1:11211',
-      "cache"        : storage,
+      "cacheHost"    : config.getHost('dod.net').cacheHost,
       "cacheTimeout" : config.getHost('dod.net').cache_timeout,
       "cleanMemory"  : config.getHost('dod.net').clean_memory 
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
 
+console.log("request: " + req.url);
     cache.get(req, function (result) {
       if (result && !cache.isStale()) {
         // Right out of cache. So fast!
+console.log("\t\tcache: " + cache.buildKey());
         sendCachedResponse(res, result);
         return;
       }
-
-      var proxyOptions = {
-        host             : config.getHost('dod.net').hostname,
-        port             : config.getHost('dod.net').remote_port,
-        enableXForwarded : config.getHost('dod.net').x_forwarded_for,
-        maxSockets       : config.getHost('dod.net').max_sockets,
-        buffer           : reqBuffer
-      };
 
       // Use some trick like this to get at the data for caching.
       var _write = res.write;
@@ -111,11 +104,25 @@ function startResistProxy() {
 
           // If we get an error response, and we have an old cached value that
           // is a non-error response, we should use that.
-          if (code >= 400 && result && result.code < 400) {
+          // OR:
+          // If we get a 304 response that nothing has changed, and we have
+          // a cached value, we should serve the cached value and update the
+          // cache headers.
+          if (result
+              && ((code >= 400 && code != 410)
+                || code == 304)) {
             // reset these back to normal before we push cache out
             res.write = _write;
             res.writeHead = _writeHead;
             res.end = _end;
+
+            if (code == 304) {
+              for (var key in headers) {
+                result.headers[key] = headers[key];
+              }
+              cache.update(result);
+            }
+
             sendCachedResponse(res, result);
             return;
           }
@@ -154,6 +161,15 @@ function startResistProxy() {
         cache.set(res);
       });
 
+      var proxyOptions = {
+        host             : config.getHost('dod.net').hostname,
+        port             : config.getHost('dod.net').remote_port,
+        enableXForwarded : config.getHost('dod.net').x_forwarded_for,
+        maxSockets       : config.getHost('dod.net').max_sockets,
+        buffer           : reqBuffer
+      };
+
+console.log("\t\tproxy: " + cache.buildKey());
       proxy.proxyRequest(req, res, proxyOptions);
     });
   });
