@@ -52,12 +52,6 @@ exports.http_cache = {
     test.isFunction(this.httpCache.update);
     test.done();
   },
-  'should have setCleanMemory method' : function (test) {
-    test.expect(2);
-    test.isNotNull(this.httpCache.setCleanMemory);
-    test.isFunction(this.httpCache.setCleanMemory);
-    test.done();
-  },
   'should have getVersion method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getVersion);
@@ -82,10 +76,10 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getCleanMemory);
     test.done();
   },
-  'should have setCode method' : function (test) {
+  'should have setCleanMemory method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.httpCache.setCode);
-    test.isFunction(this.httpCache.setCode);
+    test.isNotNull(this.httpCache.setCleanMemory);
+    test.isFunction(this.httpCache.setCleanMemory);
     test.done();
   },
   'should have getCode method' : function (test) {
@@ -94,10 +88,10 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getCode);
     test.done();
   },
-  'should have setReason method' : function (test) {
+  'should have setCode method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.httpCache.setReason);
-    test.isFunction(this.httpCache.setReason);
+    test.isNotNull(this.httpCache.setCode);
+    test.isFunction(this.httpCache.setCode);
     test.done();
   },
   'should have getReason method' : function (test) {
@@ -106,10 +100,10 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getReason);
     test.done();
   },
-  'should have setHeaders method' : function (test) {
+  'should have setReason method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.httpCache.setHeaders);
-    test.isFunction(this.httpCache.setHeaders);
+    test.isNotNull(this.httpCache.setReason);
+    test.isFunction(this.httpCache.setReason);
     test.done();
   },
   'should have getHeaders method' : function (test) {
@@ -118,16 +112,22 @@ exports.http_cache = {
     test.isFunction(this.httpCache.getHeaders);
     test.done();
   },
-  'should have setBody method' : function (test) {
+  'should have setHeaders method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.httpCache.setBody);
-    test.isFunction(this.httpCache.setBody);
+    test.isNotNull(this.httpCache.setHeaders);
+    test.isFunction(this.httpCache.setHeaders);
     test.done();
   },
   'should have getBody method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getBody);
     test.isFunction(this.httpCache.getBody);
+    test.done();
+  },
+  'should have setBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setBody);
+    test.isFunction(this.httpCache.setBody);
     test.done();
   },
   'should have getKeyPrefix method' : function (test) {
