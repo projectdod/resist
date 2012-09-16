@@ -49,7 +49,7 @@ if (cluster.isMaster) {
       "remote_port"      : 80,
       "x_forwarded_for"  : true,
       "local_port"       : 80,
-      "cache_timeout"    : 30,
+      "cache_timeout"    : 300,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
       "cacheType"        : 'redis',
