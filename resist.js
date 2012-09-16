@@ -47,12 +47,12 @@ if (cluster.isMaster) {
     config.setHost("dod.net", {
       "hostname"         : "208.78.244.151",
       "remote_port"      : 80,
-      "x_forwarded_for"  : true,
+      "xforward"         : true,
       "local_port"       : 80,
       "cache_timeout"    : 300,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
-      "cacheType"        : 'redis',
+      "cacheType"        : 'local',
       "cacheHost"        : '127.0.0.1',
       "cachePort"        : '6379'
     });
@@ -61,14 +61,14 @@ if (cluster.isMaster) {
   });
 }
 
-function sendCachedResponse(res, cachedData) {
-  if (cachedData.reason) {
-    res.writeHead(cachedData.code, cachedData.reason, cachedData.headers);
+function sendCachedResponse(res, cache) {
+  if (cache.getReason()) {
+    res.writeHead(cache.getCode(), cache.getReason(), cache.getHeaders());
   } else {
-    res.writeHead(cachedData.code, cachedData.headers);
+    res.writeHead(cache.getCode(), cache.getHeaders());
   }
 
-  res.write(cachedData.body);
+  res.write(cache.getBody());
   res.end();
 }
 
@@ -87,19 +87,33 @@ function startResistProxy() {
     cache.get(req, function (result) {
       if (result && !cache.isStale()) {
         // Right out of cache. So fast!
+console.log("cache: " + cache.buildKey());
         sendCachedResponse(res, result);
         return;
       }
 
       // Use some trick like this to get at the data for caching.
-      var _write = res.write;
-      var _writeHead = res.writeHead;
-      var _end = res.end;
+      var tmpWrite = res.write;
+      var tmpWriteHead = res.writeHead;
+      var tmpEnd = res.end;
+      var setCache = function () {
+        try {
+          cache.set(res);
+        }
+        catch (err) {
+          console.error(err);
+        }
+      };
 
       res.writeHead = function (code, reason, headers) {
           var code = arguments[0];
           var headers = arguments[1];
           var reason = undefined;
+
+          if (arguments.length === 3) {
+            reason = arguments[1];
+            headers = arguments[2];
+          }
 
           // If we get an error response, and we have an old cached value that
           // is a non-error response, we should use that.
@@ -111,14 +125,13 @@ function startResistProxy() {
               && ((code >= 400 && code != 410)
                 || code == 304)) {
             // reset these back to normal before we push cache out
-            res.write = _write;
-            res.writeHead = _writeHead;
-            res.end = _end;
+            res.write = tmpWrite;
+            res.writeHead = tmpWriteHead;
+            res.end = tmpEnd;
+            res.removeListener('finish', setCache);
 
             if (code == 304) {
-              for (var key in headers) {
-                result.headers[key] = headers[key];
-              }
+              cache.mergeHeaders(headers);
               cache.update(result);
             }
 
@@ -126,48 +139,44 @@ function startResistProxy() {
             return;
           }
 
-          if (arguments.length === 3) {
-            reason = arguments[1];
-            headers = arguments[2];
-          }
-
           cache.setCode(code);
           cache.setReason(reason);
           cache.setHeaders(headers);
 
           if (reason) {
-            _writeHead.call(res, code, reason, headers);
+            tmpWriteHead.call(res, code, reason, headers);
           } else {
-            _writeHead.call(res, code, headers);
+            tmpWriteHead.call(res, code, headers);
           }
       };
 
       res.write = function (data) {
           cache.setBody(data);
-          _write.call(res, data);
+          tmpWrite.call(res, data);
       };
 
       res.end = function (data) {
           if (arguments.length > 0) {
             cache.setBody(data);
-            _end.call(res, data);
+            tmpEnd.call(res, data);
           } else {
-            _end.call(res);
+            tmpEnd.call(res);
           }
       };
 
-      res.on('finish', function () {
-        cache.set(res);
-      });
+      res.on('finish', setCache);
 
       var proxyOptions = {
-        host             : config.getHost('dod.net').hostname,
-        port             : config.getHost('dod.net').remote_port,
-        enableXForwarded : config.getHost('dod.net').x_forwarded_for,
-        maxSockets       : config.getHost('dod.net').max_sockets,
-        buffer           : reqBuffer
+        host       : config.getHost('dod.net').hostname,
+        port       : config.getHost('dod.net').remote_port,
+        maxSockets : config.getHost('dod.net').max_sockets,
+        buffer     : reqBuffer,
+        enable     : {
+          xforward : config.getHost('dod.net').xforward
+        }
       };
 
+console.log("proxy: " + cache.buildKey());
       proxy.proxyRequest(req, res, proxyOptions);
     });
   });
