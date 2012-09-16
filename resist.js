@@ -52,7 +52,7 @@ if (cluster.isMaster) {
       "cache_timeout"    : 300,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
-      "cacheType"        : 'local',
+      "cacheType"        : 'redis',
       "cacheHost"        : '127.0.0.1',
       "cachePort"        : '6379'
     });
@@ -85,7 +85,7 @@ function startResistProxy() {
     var reqBuffer = httpProxy.buffer(req);
 
     cache.get(req, function (result) {
-      if (result && !cache.isStale()) {
+      if (result && !result.isStale()) {
         // Right out of cache. So fast!
 console.log("cache: " + cache.buildKey());
         sendCachedResponse(res, result);
@@ -139,6 +139,7 @@ console.log("cache: " + cache.buildKey());
             return;
           }
 
+          cache.clearBody();
           cache.setCode(code);
           cache.setReason(reason);
           cache.setHeaders(headers);
