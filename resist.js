@@ -31,7 +31,6 @@ if (cluster.isMaster) {
                               Be The Media\n";
   util.puts(welcome);
 
-cpus = 1;
   for (var i = 0; i < cpus; i++) {
     cluster.fork();
   }
@@ -50,11 +49,12 @@ cpus = 1;
       "remote_port"      : 80,
       "x_forwarded_for"  : true,
       "local_port"       : 80,
-      "cache_timeout"    : 300,
+      "cache_timeout"    : 30,
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
-      "cacheType"        : 'local',
-      "cacheHost"        : '10.41.54.133:11211'
+      "cacheType"        : 'redis',
+      "cacheHost"        : '127.0.0.1',
+      "cachePort"        : '6379'
     });
 
     startResistProxy();
@@ -77,17 +77,16 @@ function startResistProxy() {
     var cacheOptions = {
       "type"         : config.getHost('dod.net').cacheType,
       "cacheHost"    : config.getHost('dod.net').cacheHost,
+      "cachePort"    : config.getHost('dod.net').cachePort,
       "cacheTimeout" : config.getHost('dod.net').cache_timeout,
       "cleanMemory"  : config.getHost('dod.net').clean_memory 
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
 
-console.log("request: " + req.url);
     cache.get(req, function (result) {
       if (result && !cache.isStale()) {
         // Right out of cache. So fast!
-console.log("\t\tcache: " + cache.buildKey());
         sendCachedResponse(res, result);
         return;
       }
@@ -169,7 +168,6 @@ console.log("\t\tcache: " + cache.buildKey());
         buffer           : reqBuffer
       };
 
-console.log("\t\tproxy: " + cache.buildKey());
       proxy.proxyRequest(req, res, proxyOptions);
     });
   });

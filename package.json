@@ -16,7 +16,7 @@
   "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
   "dependencies": {
     "http-proxy"      : ">= 0.0.0",
-    "memcached"       : ">= 0.0.0",
+    "redis"           : ">= 0.0.0",
     "gossiper"        : ">= 0.0.0"
   },
   "optionalDependencies": {

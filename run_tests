@@ -3,7 +3,7 @@
 try {
   var reporter = require('nodeunit').reporters.default;
   var gossiper = require('gossiper');
-  var memcached = require('memcached');
+  var memcached = require('redis');
 }
 catch(e) {
   console.log(e.message);
