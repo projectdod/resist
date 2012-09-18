@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/godsflaw/resist.git" 
+    "url": "http://github.com/projectdod/resist.git" 
   },
   "keywords": ["distributed", "reverse", "caching", "proxy", "http"],
   "dependencies": {
