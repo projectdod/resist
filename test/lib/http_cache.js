@@ -5,6 +5,8 @@ function _set_up(callback) {
   this.backup = {};
   this.backup.jsonParse = JSON.parse;
 
+  this.version = 1;
+
   var cacheOptions = {
     "type" : "local"
   };
@@ -32,6 +34,23 @@ exports.http_cache = {
     test.expect(2);
     test.isNotNull(this.httpCache);
     test.isObject(this.httpCache);
+    test.done();
+  },
+  'should have default data set' : function (test) {
+    test.expect(13);
+    test.isNotNull(this.httpCache.options);
+    test.isObject(this.httpCache.options);
+    test.equal(this.httpCache.keyPrefix, 'v' + this.version + ':');
+    test.equal(this.httpCache.cleanMemory, 1);
+    test.equal(this.httpCache.type, 'local');
+    test.equal(this.httpCache.timeout, 300 * 1000);
+    test.equal(this.httpCache.cacheHost, "127.0.0.1");
+    test.equal(this.httpCache.cachePort, "6379");
+    test.equal(this.httpCache.timestamp, 0);
+    test.isArray(this.httpCache.body);
+    test.equal(this.httpCache.body.length, 0);
+    test.isObject(this.httpCache.cache);
+    test.isUndefined(this.httpCache.redis);
     test.done();
   },
   'should have get method' : function (test) {
@@ -244,6 +263,82 @@ exports.http_cache = {
       test1.toString() + test2.toString());
     test.done();
   },
+  'should have clearBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.clearBody);
+    test.isFunction(this.httpCache.clearBody);
+    test.done();
+  },
+  'clearBody should actually clear set value in object' : function (test) {
+    test.expect(7);
+    test.isNotNull(this.httpCache.getBody);
+    test.isNotNull(this.httpCache.setBody);
+    test.isNotNull(this.httpCache.clearBody);
+    test.isBuffer(this.httpCache.getBody());
+    test.equal(this.httpCache.getBody().length, 0);
+    var test1 = new Buffer("test1");
+    this.httpCache.setBody(test1);
+    test.equal(this.httpCache.getBody().toString(), test1.toString());
+    this.httpCache.clearBody();
+    test.equal(this.httpCache.getBody().length, 0);
+    test.done();
+  },
+  'should have getEncodedBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getEncodedBody);
+    test.isFunction(this.httpCache.getEncodedBody);
+    test.done();
+  },
+  'getEncodedBody will be undef if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getEncodedBody);
+    test.isUndefined(this.httpCache.getEncodedBody());
+    test.done();
+  },
+  'should have setEncodedBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setEncodedBody);
+    test.isFunction(this.httpCache.setEncodedBody);
+    test.done();
+  },
+  'setEncodedBody should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getEncodedBody);
+    test.isNotNull(this.httpCache.setEncodedBody);
+    test.isUndefined(this.httpCache.getEncodedBody());
+    this.httpCache.setEncodedBody('{"body":"test"}');
+    test.equal(this.httpCache.getEncodedBody(), '{"body":"test"}');
+    test.done();
+  },
+  'should have getTimestamp method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getTimestamp);
+    test.isFunction(this.httpCache.getTimestamp);
+    test.done();
+  },
+  'getTimestamp will be zero if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getTimestamp);
+    test.equal(this.httpCache.getTimestamp(), 0);
+    test.done();
+  },
+  'should have setTimestamp method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setTimestamp);
+    test.isFunction(this.httpCache.setTimestamp);
+    test.done();
+  },
+  'setTimestamp should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getTimestamp);
+    test.isNotNull(this.httpCache.setTimestamp);
+    test.equal(this.httpCache.getTimestamp(), 0);
+    var date = new Date();
+    var dateTest = date.getTime();
+    this.httpCache.setTimestamp(dateTest);
+    test.equal(this.httpCache.getTimestamp(), dateTest);
+    test.done();
+  },
   'should have getKeyPrefix method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.getKeyPrefix);
@@ -361,6 +456,24 @@ exports.http_cache = {
     test.expect(2);
     test.isNotNull(this.httpCache.isStale);
     test.isFunction(this.httpCache.isStale);
+    test.done();
+  },
+  'should have encodeBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.encodeBody);
+    test.isFunction(this.httpCache.encodeBody);
+    test.done();
+  },
+  'should have decodeBody method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.decodeBody);
+    test.isFunction(this.httpCache.decodeBody);
+    test.done();
+  },
+  'should have mergeHeaders method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.mergeHeaders);
+    test.isFunction(this.httpCache.mergeHeaders);
     test.done();
   }
 };

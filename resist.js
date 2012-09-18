@@ -2,8 +2,8 @@
 
 var util      = require('util'),
     http      = require('http'),
-    cluster   = require('cluster'),
     os        = require('os'),
+    cluster   = require('cluster'),
     httpProxy = require('http-proxy'),
     HttpCache = require('./lib/http_cache'),
     Config    = require('./lib/config');
@@ -14,6 +14,19 @@ var util      = require('util'),
 //
 var config;
 var cpus = os.cpus().length;
+var DEBUG = false;
+
+process.on('uncaughtException', function (err) {
+    if (err.stack) {
+        err.stack.split("\n").forEach(function (line) {
+            console.error(line);
+        });
+    }
+    else {
+        console.error('Caught exception: ' + err);
+    }
+    process.exit(1);
+});
 
 if (cluster.isMaster) {
   var welcome = "\
@@ -42,7 +55,7 @@ if (cluster.isMaster) {
 } else {
   util.puts('worker ' + process.pid + ': started');
   // godsflaw: This is just bootstrapping.  Normally this will not be in
-  // production versions.
+  // production versions.  For now, it is easy to get running.
   config = new Config(function () {
     config.setHost("dod.net", {
       "hostname"         : "208.78.244.151",
@@ -53,23 +66,12 @@ if (cluster.isMaster) {
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
       "cacheType"        : 'redis',
-      "cacheHost"        : '127.0.0.1',
+      "cacheHost"        : '10.41.54.145',
       "cachePort"        : '6379'
     });
 
     startResistProxy();
   });
-}
-
-function sendCachedResponse(res, cache) {
-  if (cache.getReason()) {
-    res.writeHead(cache.getCode(), cache.getReason(), cache.getHeaders());
-  } else {
-    res.writeHead(cache.getCode(), cache.getHeaders());
-  }
-
-  res.write(cache.getBody());
-  res.end();
 }
 
 function startResistProxy() {
@@ -85,11 +87,22 @@ function startResistProxy() {
     var reqBuffer = httpProxy.buffer(req);
 
     cache.get(req, function (result) {
+      // Right out of cache. So fast!
       if (result && !result.isStale()) {
-        // Right out of cache. So fast!
-console.log("cache: " + cache.buildKey());
         sendCachedResponse(res, result);
         return;
+      }
+
+      // If we do not have a cache entry for this request, but the
+      // request came in with an If-Modified-Since header or an
+      // If-None-Match header, we should strip those heaers before
+      // contacting the origin server.  Otherwise we will get a 304
+      // pass it through, and never re-populate the cache.
+      if (!(result)
+        && (req.headers['if-none-match']
+          || req.headers['if-modified-since'])) {
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
       }
 
       // Use some trick like this to get at the data for caching.
@@ -98,10 +111,12 @@ console.log("cache: " + cache.buildKey());
       var tmpEnd = res.end;
       var setCache = function () {
         try {
+          if (DEBUG) { console.log("proxy: " + cache.buildKey()); }
           cache.set(res);
         }
         catch (err) {
           console.error(err);
+          console.error(util.inspect(cache, true, null));
         }
       };
 
@@ -131,12 +146,18 @@ console.log("cache: " + cache.buildKey());
             res.removeListener('finish', setCache);
 
             if (code == 304) {
-              cache.mergeHeaders(headers);
-              cache.update(result);
-            }
+              try {
+                result.mergeHeaders(headers);
+                result.update();
+                sendCachedResponse(res, result);
+              }
+              catch (err) {
+                console.error(err);
+                console.error(util.inspect(result, true, null));
+              }
 
-            sendCachedResponse(res, result);
-            return;
+              return;
+            }
           }
 
           cache.clearBody();
@@ -177,10 +198,22 @@ console.log("cache: " + cache.buildKey());
         }
       };
 
-console.log("proxy: " + cache.buildKey());
       proxy.proxyRequest(req, res, proxyOptions);
     });
   });
 
   httpProxyServer.listen(config.getHost('dod.net').local_port);
 }
+
+function sendCachedResponse(res, cache) {
+  if (DEBUG) { console.log("cache: " + cache.buildKey()); }
+  if (cache.getReason()) {
+    res.writeHead(cache.getCode(), cache.getReason(), cache.getHeaders());
+  } else {
+    res.writeHead(cache.getCode(), cache.getHeaders());
+  }
+
+  res.write(cache.getBody());
+  res.end();
+}
+
