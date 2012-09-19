@@ -8,6 +8,7 @@ A Distributed Reverse Caching Proxy
 
 ### INSTALL FROM npm
 
+    npm install -g node-gyp
     npm install resist
 
 ### TESTS
