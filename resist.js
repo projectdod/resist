@@ -153,15 +153,15 @@ function startResistProxy() {
               try {
                 result.mergeHeaders(headers);
                 result.update();
-                sendCachedResponse(res, result);
               }
               catch (err) {
                 console.error(err);
                 console.error(util.inspect(result, true, null));
               }
 
-              return;
             }
+
+            return sendCachedResponse(res, result);
           }
 
           cache.clearBody();
@@ -191,16 +191,6 @@ function startResistProxy() {
       };
 
       res.on('finish', setCache);
-
-      if (result) {
-        proxy.on("proxyError", function (err, req, res) {
-          res.write = tmpWrite;
-          res.writeHead = tmpWriteHead;
-          res.end = tmpEnd;
-          res.removeListener('finish', setCache);
-          sendCachedResponse(res, result);
-        });
-      }
 
       var proxyOptions = {
         host       : config.getHost('dod.net').hostname,
