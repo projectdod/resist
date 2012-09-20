@@ -16,6 +16,10 @@ var config;
 var cpus = os.cpus().length;
 var DEBUG = false;
 
+if (!(DEBUG)) {
+    process.env.NODE_ENV = "production";
+}
+
 process.on('uncaughtException', function (err) {
     if (err.stack) {
         err.stack.split("\n").forEach(function (line) {
@@ -187,6 +191,16 @@ function startResistProxy() {
       };
 
       res.on('finish', setCache);
+
+      if (result) {
+        proxy.on("proxyError", function (err, req, res) {
+          res.write = tmpWrite;
+          res.writeHead = tmpWriteHead;
+          res.end = tmpEnd;
+          res.removeListener('finish', setCache);
+          sendCachedResponse(res, result);
+        });
+      }
 
       var proxyOptions = {
         host       : config.getHost('dod.net').hostname,
