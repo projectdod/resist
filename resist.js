@@ -70,7 +70,7 @@ if (cluster.isMaster) {
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
       "cacheType"        : 'redis',
-      "cacheHost"        : '10.41.54.149',
+      "cacheHost"        : '10.41.54.157',
       "cachePort"        : '6379'
     });
 
