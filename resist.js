@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-var util      = require('util'),
-    http      = require('http'),
+var http      = require('http'),
     os        = require('os'),
     cluster   = require('cluster'),
     httpProxy = require('http-proxy'),
@@ -42,7 +41,7 @@ if (cluster.isMaster) {
     cluster.fork();
   });
 } else {
-  util.puts('worker ' + process.pid + ': started');
+  if (DEBUG) { console.log('worker ' + process.pid + ': started'); }
   // godsflaw: This is just bootstrapping.  Normally this will not be in
   // production versions.  For now, it is easy to get running.
   config = new Config(function () {
