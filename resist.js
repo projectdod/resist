@@ -54,8 +54,6 @@ if (cluster.isMaster) {
       "clean_memory"     : 2,
       "max_sockets"      : 20000,
       "cacheType"        : 'redis',
-      "cacheHost"        : '10.41.54.157',
-      "cachePort"        : '6379',
       "cacheNodes"       : {
         "10.41.54.149:6379" : 1,
         "10.41.54.157:6379" : 1
@@ -71,8 +69,7 @@ function startResistProxy() {
     var cacheOptions = {
       "debug"        : DEBUG,
       "type"         : config.getHost('dod.net').cacheType,
-      "cacheHost"    : config.getHost('dod.net').cacheHost,
-      "cachePort"    : config.getHost('dod.net').cachePort,
+      "cacheNodes"   : config.getHost('dod.net').cacheNodes,
       "cacheTimeout" : config.getHost('dod.net').cache_timeout,
       "cleanMemory"  : config.getHost('dod.net').clean_memory 
     };
