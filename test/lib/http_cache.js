@@ -37,10 +37,11 @@ exports.http_cache = {
     test.done();
   },
   'should have default data set' : function (test) {
-    test.expect(13);
+    test.expect(14);
     test.isNotNull(this.httpCache.options);
     test.isObject(this.httpCache.options);
     test.equal(this.httpCache.keyPrefix, 'v' + this.version + ':');
+    test.equal(this.httpCache.debug, 0);
     test.equal(this.httpCache.cleanMemory, 1);
     test.equal(this.httpCache.type, 'local');
     test.equal(this.httpCache.timeout, 300 * 1000);
@@ -438,6 +439,33 @@ exports.http_cache = {
     var testObject = new Object();
     this.httpCache.setResponse(testObject);
     test.equal(this.httpCache.getResponse(), testObject);
+    test.done();
+  },
+  'should have getDebug method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getDebug);
+    test.isFunction(this.httpCache.getDebug);
+    test.done();
+  },
+  'getDebug will be 0 if not set' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getDebug);
+    test.equal(this.httpCache.getDebug(), 0);
+    test.done();
+  },
+  'should have setDebug method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setDebug);
+    test.isFunction(this.httpCache.setDebug);
+    test.done();
+  },
+  'setDebug should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getDebug);
+    test.isNotNull(this.httpCache.setDebug);
+    test.equal(this.httpCache.getDebug(), 0);
+    this.httpCache.setDebug(1);
+    test.equal(this.httpCache.getDebug(), 1);
     test.done();
   },
   'should have buildKey method' : function (test) {

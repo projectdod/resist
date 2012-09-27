@@ -38,7 +38,7 @@ if (cluster.isMaster) {
   }
 
   cluster.on('death', function(worker) {
-    util.puts('worker ' + worker.pid + ' died');
+    if (DEBUG) { console.log('worker ' + worker.pid + ' died'); }
     cluster.fork();
   });
 } else {
@@ -56,7 +56,11 @@ if (cluster.isMaster) {
       "max_sockets"      : 20000,
       "cacheType"        : 'redis',
       "cacheHost"        : '10.41.54.157',
-      "cachePort"        : '6379'
+      "cachePort"        : '6379',
+      "cacheNodes"       : {
+        "10.41.54.149:6379" : 1,
+        "10.41.54.157:6379" : 1
+      }
     });
 
     startResistProxy();
@@ -66,6 +70,7 @@ if (cluster.isMaster) {
 function startResistProxy() {
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
+      "debug"        : DEBUG,
       "type"         : config.getHost('dod.net').cacheType,
       "cacheHost"    : config.getHost('dod.net').cacheHost,
       "cachePort"    : config.getHost('dod.net').cachePort,
@@ -75,120 +80,123 @@ function startResistProxy() {
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
 
-    cache.get(req, function (result) {
-      // Right out of cache. So fast!
-      if (result && !result.isStale()) {
-        sendCachedResponse(res, result);
-        return;
-      }
-
-      // If we do not have a cache entry for this request, but the
-      // request came in with an If-Modified-Since header or an
-      // If-None-Match header, we should strip those heaers before
-      // contacting the origin server.  Otherwise we will get a 304
-      // pass it through, and never re-populate the cache.
-      if (!(result)
-        && (req.headers['if-none-match']
-          || req.headers['if-modified-since'])) {
-        delete req.headers['if-none-match'];
-        delete req.headers['if-modified-since'];
-      }
-
-      // Use some trick like this to get at the data for caching.
-      var tmpWrite = res.write;
-      var tmpWriteHead = res.writeHead;
-      var tmpEnd = res.end;
-      var setCache = function () {
-        try {
-          if (DEBUG) { console.log("proxy: " + cache.buildKey()); }
-          cache.set(res);
+    try {
+      cache.get(req, function (result) {
+        // Right out of cache. So fast!
+        if (result && !result.isStale()) {
+          sendCachedResponse(res, result);
+          return;
         }
-        catch (err) {
-          console.error(err);
-          console.error(util.inspect(cache, true, null));
+
+        // If we do not have a cache entry for this request, but the
+        // request came in with an If-Modified-Since header or an
+        // If-None-Match header, we should strip those heaers before
+        // contacting the origin server.  Otherwise we will get a 304
+        // pass it through, and never re-populate the cache.
+        if (!(result)
+          && (req.headers['if-none-match']
+            || req.headers['if-modified-since'])) {
+          delete req.headers['if-none-match'];
+          delete req.headers['if-modified-since'];
         }
-      };
 
-      res.writeHead = function (code, reason, headers) {
-          var code = arguments[0];
-          var headers = arguments[1];
-          var reason = undefined;
-
-          if (arguments.length === 3) {
-            reason = arguments[1];
-            headers = arguments[2];
+        // Use some trick like this to get at the data for caching.
+        var tmpWrite = res.write;
+        var tmpWriteHead = res.writeHead;
+        var tmpEnd = res.end;
+        var setCache = function () {
+          try {
+            if (DEBUG) { console.log("proxy: " + cache.buildKey()); }
+            cache.set(res);
           }
+          catch (err) {
+            console.error(err);
+          }
+        };
 
-          // If we get an error response, and we have an old cached value that
-          // is a non-error response, we should use that.
-          // OR:
-          // If we get a 304 response that nothing has changed, and we have
-          // a cached value, we should serve the cached value and update the
-          // cache headers.
-          if (result
-              && ((code >= 400 && code != 410)
-                || code == 304)) {
-            // reset these back to normal before we push cache out
-            res.write = tmpWrite;
-            res.writeHead = tmpWriteHead;
-            res.end = tmpEnd;
-            res.removeListener('finish', setCache);
+        res.writeHead = function (code, reason, headers) {
+            var code = arguments[0];
+            var headers = arguments[1];
+            var reason = undefined;
 
-            if (code == 304) {
-              try {
-                result.mergeHeaders(headers);
-                result.update();
-              }
-              catch (err) {
-                console.error(err);
-                console.error(util.inspect(result, true, null));
-              }
-
+            if (arguments.length === 3) {
+              reason = arguments[1];
+              headers = arguments[2];
             }
 
-            return sendCachedResponse(res, result);
-          }
+            // If we get an error response, and we have an old cached value that
+            // is a non-error response, we should use that.
+            // OR:
+            // If we get a 304 response that nothing has changed, and we have
+            // a cached value, we should serve the cached value and update the
+            // cache headers.
+            if (result
+                && ((code >= 400 && code != 410)
+                  || code == 304)) {
+              // reset these back to normal before we push cache out
+              res.write = tmpWrite;
+              res.writeHead = tmpWriteHead;
+              res.end = tmpEnd;
+              res.removeListener('finish', setCache);
 
-          cache.clearBody();
-          cache.setCode(code);
-          cache.setReason(reason);
-          cache.setHeaders(headers);
+              if (code == 304) {
+                try {
+                  result.mergeHeaders(headers);
+                  result.update();
+                }
+                catch (err) {
+                  console.error(err);
+                }
 
-          if (reason) {
-            tmpWriteHead.call(res, code, reason, headers);
-          } else {
-            tmpWriteHead.call(res, code, headers);
-          }
-      };
+              }
 
-      res.write = function (data) {
-          cache.setBody(data);
-          tmpWrite.call(res, data);
-      };
+              return sendCachedResponse(res, result);
+            }
 
-      res.end = function (data) {
-          if (arguments.length > 0) {
+            cache.clearBody();
+            cache.setCode(code);
+            cache.setReason(reason);
+            cache.setHeaders(headers);
+
+            if (reason) {
+              tmpWriteHead.call(res, code, reason, headers);
+            } else {
+              tmpWriteHead.call(res, code, headers);
+            }
+        };
+
+        res.write = function (data) {
             cache.setBody(data);
-            tmpEnd.call(res, data);
-          } else {
-            tmpEnd.call(res);
+            tmpWrite.call(res, data);
+        };
+
+        res.end = function (data) {
+            if (arguments.length > 0) {
+              cache.setBody(data);
+              tmpEnd.call(res, data);
+            } else {
+              tmpEnd.call(res);
+            }
+        };
+
+        res.on('finish', setCache);
+
+        var proxyOptions = {
+          host       : config.getHost('dod.net').hostname,
+          port       : config.getHost('dod.net').remote_port,
+          maxSockets : config.getHost('dod.net').max_sockets,
+          buffer     : reqBuffer,
+          enable     : {
+            xforward : config.getHost('dod.net').xforward
           }
-      };
+        };
 
-      res.on('finish', setCache);
-
-      var proxyOptions = {
-        host       : config.getHost('dod.net').hostname,
-        port       : config.getHost('dod.net').remote_port,
-        maxSockets : config.getHost('dod.net').max_sockets,
-        buffer     : reqBuffer,
-        enable     : {
-          xforward : config.getHost('dod.net').xforward
-        }
-      };
-
-      proxy.proxyRequest(req, res, proxyOptions);
-    });
+        proxy.proxyRequest(req, res, proxyOptions);
+      });
+    }
+    catch (err) {
+      console.error(err);
+    }
   });
 
   httpProxyServer.listen(config.getHost('dod.net').local_port);

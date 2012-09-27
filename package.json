@@ -24,6 +24,7 @@
   ],
   "dependencies": {
     "http-proxy"      : ">= 0.0.0",
+    "hash_ring"       : "https://github.com/godsflaw/node-hash-ring/tarball/master",
     "redis"           : ">= 0.0.0",
     "gossiper"        : ">= 0.0.0"
   },
