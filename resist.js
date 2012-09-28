@@ -46,17 +46,17 @@ if (cluster.isMaster) {
   // production versions.  For now, it is easy to get running.
   config = new Config(function () {
     config.setHost("dod.net", {
-      "hostname"         : "208.78.244.151",
-      "remote_port"      : 80,
-      "xforward"         : true,
-      "local_port"       : 80,
-      "cache_timeout"    : 300,
-      "clean_memory"     : 2,
-      "max_sockets"      : 20000,
-      "cacheType"        : 'redis',
-      "cacheNodes"       : {
-        "10.41.54.149:6379" : 1,
-        "10.41.54.157:6379" : 1
+      "hostname"      : "208.78.244.151",
+      "remote_port"   : 80,
+      "xforward"      : true,
+      "local_port"    : 80,
+      "cache_timeout" : 300,
+      "clean_memory"  : 2,
+      "max_sockets"   : 20000,
+      "cacheType"     : 'redis',
+      "cacheNodes"    : {
+        "10.41.54.144:6379" : 1,
+        "10.41.54.149:6379" : 1
       }
     });
 
