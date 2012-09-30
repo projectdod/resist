@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var http      = require('http'),
+    util      = require('util'),
     os        = require('os'),
     cluster   = require('cluster'),
     httpProxy = require('http-proxy'),
@@ -13,7 +14,7 @@ var http      = require('http'),
 //
 var config;
 var cpus = os.cpus().length;
-var DEBUG = false;
+var DEBUG = true;
 
 if (!(DEBUG)) {
     process.env.NODE_ENV = "production";
@@ -46,15 +47,16 @@ if (cluster.isMaster) {
   // production versions.  For now, it is easy to get running.
   config = new Config(function () {
     config.setHost("dod.net", {
-      "hostname"      : "208.78.244.151",
-      "remote_port"   : 80,
-      "xforward"      : true,
-      "local_port"    : 80,
-      "cache_timeout" : 300,
-      "clean_memory"  : 2,
-      "max_sockets"   : 20000,
-      "cacheType"     : 'redis',
-      "cacheNodes"    : {
+      "http_port"      : 80,                  // local port
+      "proxy_host"     : "208.78.244.151",    // remote host to proxy to
+      "proxy_port"     : 80,                  // remote port to proxy to
+      "proxy_xforward" : true,                // true/false xforward
+      "proxy_timeout"  : 2000,                // millisecond before timeout
+      "proxy_sockets"  : 20000,               // max proxy sockets
+      "cache_timeout"  : 300,                 // seconds
+      "cache_purge"    : 2,                   // hours before local memory purge
+      "cache_type"     : 'redis',             // type of cache
+      "cache_nodes"    : {                    // cache nodes, addr:port weight
         "10.41.54.144:6379" : 1,
         "10.41.54.149:6379" : 1
       }
@@ -68,10 +70,10 @@ function startResistProxy() {
   var httpProxyServer = httpProxy.createServer(function (req, res, proxy) {
     var cacheOptions = {
       "debug"        : DEBUG,
-      "type"         : config.getHost('dod.net').cacheType,
-      "cacheNodes"   : config.getHost('dod.net').cacheNodes,
+      "type"         : config.getHost('dod.net').cache_type,
+      "cacheNodes"   : config.getHost('dod.net').cache_nodes,
       "cacheTimeout" : config.getHost('dod.net').cache_timeout,
-      "cleanMemory"  : config.getHost('dod.net').clean_memory 
+      "cleanMemory"  : config.getHost('dod.net').cache_purge 
     };
     var cache = new HttpCache(cacheOptions);
     var reqBuffer = httpProxy.buffer(req);
@@ -178,16 +180,19 @@ function startResistProxy() {
         res.on('finish', setCache);
 
         var proxyOptions = {
-          host       : config.getHost('dod.net').hostname,
-          port       : config.getHost('dod.net').remote_port,
-          maxSockets : config.getHost('dod.net').max_sockets,
+          host       : config.getHost('dod.net').proxy_host,
+          port       : config.getHost('dod.net').proxy_port,
+          maxSockets : config.getHost('dod.net').proxy_sockets,
           buffer     : reqBuffer,
           enable     : {
-            xforward : config.getHost('dod.net').xforward
+            xforward : config.getHost('dod.net').proxy_xforward
           }
         };
 
         proxy.proxyRequest(req, res, proxyOptions);
+        setTimeout(function () {
+          proxyTimeout(new Error("Gateway Timeout"), req, res);
+        }, config.getHost('dod.net').proxy_timeout);
       });
     }
     catch (err) {
@@ -195,7 +200,8 @@ function startResistProxy() {
     }
   });
 
-  httpProxyServer.listen(config.getHost('dod.net').local_port);
+  httpProxyServer.listen(config.getHost('dod.net').http_port);
+  httpProxyServer.proxy.on('proxyError', proxyError);
 }
 
 function sendCachedResponse(res, cache) {
@@ -210,3 +216,20 @@ function sendCachedResponse(res, cache) {
   res.end();
 }
 
+function proxyError(err, req, res) {
+  res.writeHead(500, "Internal Server Error", {
+    'Content-Type' : 'text/plain'
+  });
+  if (req.method !== 'HEAD') {
+    res.write("Internal Server Error: please try again later.");
+  }
+  res.end();
+}
+
+function proxyTimeout(err, req, res) {
+  res.writeHead(504, "Gateway Timeout", { 'Content-Type' : 'text/plain' });
+  if (req.method !== 'HEAD') {
+    res.write("Gateway Timeout: please try again later.");
+  }
+  res.end();
+}
