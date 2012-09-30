@@ -14,7 +14,7 @@ var http      = require('http'),
 //
 var config;
 var cpus = os.cpus().length;
-var DEBUG = true;
+var DEBUG = false;
 
 if (!(DEBUG)) {
     process.env.NODE_ENV = "production";
@@ -51,7 +51,7 @@ if (cluster.isMaster) {
       "proxy_host"     : "208.78.244.151",    // remote host to proxy to
       "proxy_port"     : 80,                  // remote port to proxy to
       "proxy_xforward" : true,                // true/false xforward
-      "proxy_timeout"  : 2000,                // millisecond before timeout
+      "proxy_timeout"  : 5000,                // millisecond before timeout
       "proxy_sockets"  : 20000,               // max proxy sockets
       "cache_timeout"  : 300,                 // seconds
       "cache_purge"    : 2,                   // hours before local memory purge
@@ -112,10 +112,16 @@ function startResistProxy() {
           }
         };
 
+        var proxyTimeoutID = setTimeout(function () {
+          proxyTimeout(new Error("Gateway Timeout"), req, res);
+        }, config.getHost('dod.net').proxy_timeout);
+
         res.writeHead = function (code, reason, headers) {
             var code = arguments[0];
             var headers = arguments[1];
             var reason = undefined;
+
+            clearTimeout(proxyTimeoutID);
 
             if (arguments.length === 3) {
               reason = arguments[1];
@@ -164,11 +170,14 @@ function startResistProxy() {
         };
 
         res.write = function (data) {
+            clearTimeout(proxyTimeoutID);
             cache.setBody(data);
             tmpWrite.call(res, data);
         };
 
         res.end = function (data) {
+            clearTimeout(proxyTimeoutID);
+
             if (arguments.length > 0) {
               cache.setBody(data);
               tmpEnd.call(res, data);
@@ -190,9 +199,6 @@ function startResistProxy() {
         };
 
         proxy.proxyRequest(req, res, proxyOptions);
-        setTimeout(function () {
-          proxyTimeout(new Error("Gateway Timeout"), req, res);
-        }, config.getHost('dod.net').proxy_timeout);
       });
     }
     catch (err) {
