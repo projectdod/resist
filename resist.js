@@ -113,7 +113,7 @@ function startResistProxy() {
         };
 
         var proxyTimeoutID = setTimeout(function () {
-          proxyTimeout(new Error("Gateway Timeout"), req, res);
+          proxyTimeout(req, res);
         }, config.getHost('dod.net').proxy_timeout);
 
         res.writeHead = function (code, reason, headers) {
@@ -232,7 +232,7 @@ function proxyError(err, req, res) {
   res.end();
 }
 
-function proxyTimeout(err, req, res) {
+function proxyTimeout(req, res) {
   res.writeHead(504, "Gateway Timeout", { 'Content-Type' : 'text/plain' });
   if (req.method !== 'HEAD') {
     res.write("Gateway Timeout: please try again later.");
