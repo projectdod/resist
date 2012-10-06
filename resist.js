@@ -112,21 +112,17 @@ function startResistProxy() {
           }
         };
 
-        var proxyTimeoutID = setTimeout(function () {
-          proxyTimeout(req, res);
-        }, config.getHost('dod.net').proxy_timeout);
-
         res.writeHead = function (code, reason, headers) {
             var code = arguments[0];
             var headers = arguments[1];
             var reason = undefined;
 
-            clearTimeout(proxyTimeoutID);
-
             if (arguments.length === 3) {
               reason = arguments[1];
               headers = arguments[2];
             }
+
+            res.ignoreTimeout = true;
 
             // If we get an error response, and we have an old cached value that
             // is a non-error response, we should use that.
@@ -170,14 +166,13 @@ function startResistProxy() {
         };
 
         res.write = function (data) {
-            clearTimeout(proxyTimeoutID);
+            res.ignoreTimeout = true;
             cache.setBody(data);
             tmpWrite.call(res, data);
         };
 
         res.end = function (data) {
-            clearTimeout(proxyTimeoutID);
-
+            res.ignoreTimeout = true;
             if (arguments.length > 0) {
               cache.setBody(data);
               tmpEnd.call(res, data);
@@ -208,6 +203,13 @@ function startResistProxy() {
 
   httpProxyServer.listen(config.getHost('dod.net').http_port);
   httpProxyServer.proxy.on('proxyError', proxyError);
+  httpProxyServer.proxy.on('start', function (req, res, target) {
+    // I can't say I love this fix.  If the origin server is down, we have
+    // to time the connection out at some point.  The problem is, once we
+    // time it out, the proxy just sits around in the background for a while
+    // sucking up memory.  This means an active server can get very boated.
+    setTimeout(proxyTimeout, config.getHost('dod.net').proxy_timeout, req, res);
+  });
 }
 
 function sendCachedResponse(res, cache) {
@@ -226,16 +228,25 @@ function proxyError(err, req, res) {
   res.writeHead(500, "Internal Server Error", {
     'Content-Type' : 'text/plain'
   });
+
   if (req.method !== 'HEAD') {
     res.write("Internal Server Error: please try again later.");
   }
+
   res.end();
 }
 
 function proxyTimeout(req, res) {
+  if (res.ignoreTimeout) {
+    return;
+  }
+
   res.writeHead(504, "Gateway Timeout", { 'Content-Type' : 'text/plain' });
+  res.writeHead = function () {};
   if (req.method !== 'HEAD') {
     res.write("Gateway Timeout: please try again later.");
+    res.write = function () {};
   }
   res.end();
+  res.end = function () {};
 }
