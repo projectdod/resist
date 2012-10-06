@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 try {
-  var reporter = require('nodeunit').reporters.default;
-  var gossiper = require('gossiper');
+  var reporter  = require('nodeunit').reporters.default;
+  var gossiper  = require('gossiper');
   var memcached = require('redis');
 }
 catch(e) {
