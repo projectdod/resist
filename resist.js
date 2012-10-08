@@ -10,7 +10,7 @@ var os           = require('os'),
 // what you're doing.
 //
 var cpus = os.cpus().length;
-var DEBUG = true;
+var DEBUG = false;
 
 if (!(DEBUG)) {
     process.env.NODE_ENV = "production";
@@ -43,7 +43,7 @@ if (cluster.isMaster) {
   // production versions.  For now, it is easy to get running.
   var config = new Config(function () {
     config.setHost("dod.net", {
-      "http_port"      : 8000,                // local port
+      "http_port"      : 80,                  // local port
       "proxy_host"     : "208.78.244.151",    // remote host to proxy to
       "proxy_port"     : 80,                  // remote port to proxy to
       "proxy_xforward" : true,                // true/false xforward

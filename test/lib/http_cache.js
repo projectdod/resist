@@ -37,9 +37,8 @@ exports.http_cache = {
     test.done();
   },
   'should have default data set' : function (test) {
-    test.expect(14);
+    test.expect(13);
     test.isNotNull(this.httpCache.options);
-    test.isObject(this.httpCache.options);
     test.equal(this.httpCache.keyPrefix, 'v' + this.version + ':');
     test.equal(this.httpCache.debug, 0);
     test.equal(this.httpCache.cleanMemory, 1);
