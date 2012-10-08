@@ -1,5 +1,5 @@
 var ResistServer = require("../lib/resist_server"),
-    Config       = require("../lib/Config"),
+    Config       = require("../lib/config"),
     stub         = require("./fixtures/stub");
 
 function _set_up(callback) {

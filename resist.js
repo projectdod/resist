@@ -10,7 +10,7 @@ var os           = require('os'),
 // what you're doing.
 //
 var cpus = os.cpus().length;
-var DEBUG = false;
+var DEBUG = true;
 
 if (!(DEBUG)) {
     process.env.NODE_ENV = "production";
