@@ -10,7 +10,7 @@ var os           = require('os'),
 // what you're doing.
 //
 var cpus = os.cpus().length;
-var DEBUG = true;
+var DEBUG = false;
 
 if (!(DEBUG)) {
     process.env.NODE_ENV = "production";
@@ -51,7 +51,7 @@ if (cluster.isMaster) {
       "proxy_sockets"  : 20000,               // max proxy sockets
       "cache_timeout"  : 300,                 // seconds
       "cache_purge"    : 2,                   // hours before local memory purge
-      "cache_type"     : 'local',             // type of cache
+      "cache_type"     : 'redis',             // type of cache
       "cache_nodes"    : {                    // cache nodes, addr:port weight
         "10.41.54.144:6379" : 1,
         "10.41.54.149:6379" : 1
