@@ -19,7 +19,7 @@ function _set_up(callback) {
         "proxy_timeout"  : 5000,              // millisecond before timeout
         "proxy_sockets"  : 20000,             // max proxy sockets
         "cache_timeout"  : 300,               // seconds
-        "cache_purge"    : 2,                 // hours before local memory purge
+        "cache_purge"    : 3600,              // sec before local memory purge
         "cache_type"     : 'local',           // type of cache
         "cache_nodes"    : {                  // cache nodes, addr:port weight
           "127.0.0.1:6379" : 1

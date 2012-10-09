@@ -7,6 +7,31 @@ function _set_up(callback) {
 
   this.version = 1;
 
+  this.req = {
+    "url"         : "/foo",
+    "httpVersion" : "1.1",
+    "method"      : "GET",
+    "user-agent"  : "iPhone",
+    "headers"     : {
+      "host"          : "dod.net",
+      "cache-control" : "yammer",
+      "cookie"        : "some_cookie"
+    }
+  };
+
+  this.res = {
+    "statusCode"  : "200",
+    "headers"     : {
+      "host"          : "dod.net",
+      "cache-control" : "yammer",
+      "cookie"        : "some_cookie"
+    }
+  };
+
+  this.res.getHeader = function (key) {
+    return this.res.headers.key;
+  }.bind(this);
+
   var cacheOptions = {
     "type" : "local"
   };
@@ -37,11 +62,11 @@ exports.http_cache = {
     test.done();
   },
   'should have default data set' : function (test) {
-    test.expect(13);
+    test.expect(14);
     test.isNotNull(this.httpCache.options);
     test.equal(this.httpCache.keyPrefix, 'v' + this.version + ':');
     test.equal(this.httpCache.debug, 0);
-    test.equal(this.httpCache.cleanMemory, 1);
+    test.equal(this.httpCache.cleanMemory, 3600);
     test.equal(this.httpCache.type, 'local');
     test.equal(this.httpCache.timeout, 300 * 1000);
     test.equal(this.httpCache.cacheHost, "127.0.0.1");
@@ -50,6 +75,7 @@ exports.http_cache = {
     test.isArray(this.httpCache.body);
     test.equal(this.httpCache.body.length, 0);
     test.isObject(this.httpCache.cache);
+    test.isObject(this.httpCache.cacheNodes);
     test.isUndefined(this.httpCache.redis);
     test.done();
   },
@@ -59,11 +85,40 @@ exports.http_cache = {
     test.isFunction(this.httpCache.get);
     test.done();
   },
+  'get method should return nothing' : function (test) {
+    test.expect(1);
+    this.httpCache.get(this.req, function (cache) {
+      test.isUndefined(cache);
+      test.done();
+    });
+  },
   'should have set method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.set);
     test.isFunction(this.httpCache.set);
     test.done();
+  },
+  'set/update method should set data available through get' : function (test) {
+    var self = this;
+    test.expect(6);
+    this.httpCache.setRequest(this.req);
+    this.httpCache.setCode(this.res.statusCode);
+    this.httpCache.setHeaders(this.res.headers);
+    this.httpCache.setCleanMemory(0);
+    this.httpCache.set(this.res);
+    this.httpCache.get(this.req, function (cache) {
+      test.isObject(cache);
+      test.equal(cache.getCode(), 200);
+      test.deepEqual(cache.getHeaders(), self.res.headers);
+      self.httpCache.setCode(203);
+      self.httpCache.update();
+      self.httpCache.get(self.req, function (newCache) {
+        test.isObject(newCache);
+        test.equal(newCache.getCode(), 203);
+        test.deepEqual(newCache.getHeaders(), self.res.headers);
+        test.done();
+      });
+    });
   },
   'should have update method' : function (test) {
     test.expect(2);
@@ -118,7 +173,7 @@ exports.http_cache = {
     test.expect(2);
     test.isNotNull(this.httpCache.getCleanMemory);
     // Though it was better to test the default value by hand here
-    test.equal(this.httpCache.getCleanMemory(), 1);
+    test.equal(this.httpCache.getCleanMemory(), 3600);
     test.done();
   },
   'should have setCleanMemory method' : function (test) {
@@ -143,7 +198,7 @@ exports.http_cache = {
     test.expect(4);
     test.isNotNull(this.httpCache.getCleanMemory);
     test.isNotNull(this.httpCache.setCleanMemory);
-    test.equal(this.httpCache.getCleanMemory(), 1);
+    test.equal(this.httpCache.getCleanMemory(), 3600);
     this.httpCache.setCleanMemory(5);
     test.equal(this.httpCache.getCleanMemory(), 5);
     test.done();
@@ -227,6 +282,62 @@ exports.http_cache = {
     test.isUndefined(this.httpCache.getHeaders());
     this.httpCache.setHeaders({ 'cache-control' : 'test' });
     test.deepEqual(this.httpCache.getHeaders(), { 'cache-control' : 'test' });
+    test.done();
+  },
+  'should have getMaxBodySize method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getMaxBodySize);
+    test.isFunction(this.httpCache.getMaxBodySize);
+    test.done();
+  },
+  'getMaxBodySize will be default if not set' : function (test) {
+    test.expect(3);
+    test.isNotNull(this.httpCache.getMaxBodySize);
+    test.isNotNull(this.httpCache.getMaxBodySize());
+    test.equal(this.httpCache.getMaxBodySize(), 26214400);
+    test.done();
+  },
+  'should have setMaxBodySize method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setMaxBodySize);
+    test.isFunction(this.httpCache.setMaxBodySize);
+    test.done();
+  },
+  'setMaxBodySize should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getMaxBodySize);
+    test.isNotNull(this.httpCache.setMaxBodySize);
+    test.isNotNull(this.httpCache.getMaxBodySize());
+    this.httpCache.setMaxBodySize(1024);
+    test.equal(this.httpCache.getMaxBodySize(), 1024);
+    test.done();
+  },
+  'should have getBodySize method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.getBodySize);
+    test.isFunction(this.httpCache.getBodySize);
+    test.done();
+  },
+  'getBodySize will be default if not set' : function (test) {
+    test.expect(3);
+    test.isNotNull(this.httpCache.getBodySize);
+    test.isNotNull(this.httpCache.getBodySize());
+    test.equal(this.httpCache.getBodySize(), 0);
+    test.done();
+  },
+  'should have setBodySize method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.httpCache.setBodySize);
+    test.isFunction(this.httpCache.setBodySize);
+    test.done();
+  },
+  'setBodySize should actually set value in object' : function (test) {
+    test.expect(4);
+    test.isNotNull(this.httpCache.getBodySize);
+    test.isNotNull(this.httpCache.setBodySize);
+    test.isNotNull(this.httpCache.getBodySize());
+    this.httpCache.setBodySize(1024);
+    test.equal(this.httpCache.getBodySize(), 1024);
     test.done();
   },
   'should have getBody method' : function (test) {
