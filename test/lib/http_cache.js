@@ -22,9 +22,7 @@ function _set_up(callback) {
   this.res = {
     "statusCode"  : "200",
     "headers"     : {
-      "host"          : "dod.net",
-      "cache-control" : "yammer",
-      "cookie"        : "some_cookie"
+      "some" : "data"
     }
   };
 
@@ -612,6 +610,21 @@ exports.http_cache = {
     test.expect(2);
     test.isNotNull(this.httpCache.mergeHeaders);
     test.isFunction(this.httpCache.mergeHeaders);
+    test.done();
+  },
+  'mergeHeaders should, you know, merge headers' : function (test) {
+    test.expect(2);
+    var newHeaders = {
+      "more" : "data"
+    };
+    var expectHeaders = {
+      "some" : "data",
+      "more" : "data"
+    };
+    this.httpCache.setHeaders(this.res.headers);
+    test.deepEqual(this.httpCache.getHeaders(), this.res.headers);
+    this.httpCache.mergeHeaders(newHeaders);
+    test.deepEqual(this.httpCache.getHeaders(), expectHeaders);
     test.done();
   }
 };
