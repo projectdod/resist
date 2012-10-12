@@ -47,7 +47,7 @@ if (cluster.isMaster) {
       "proxy_host"     : "208.78.244.151",    // remote host to proxy to
       "proxy_port"     : 80,                  // remote port to proxy to
       "proxy_xforward" : true,                // true/false xforward
-      "proxy_timeout"  : 20000,               // millisecond before timeout
+      "proxy_timeout"  : 60000,               // millisecond before timeout
       "proxy_sockets"  : 20000,               // max proxy sockets
       "cache_timeout"  : 300,                 // seconds
       "cache_purge"    : 3600,                // sec before local memory purge
