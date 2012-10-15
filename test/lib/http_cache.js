@@ -582,6 +582,26 @@ exports.http_cache = {
     test.isFunction(this.httpCache.buildKey);
     test.done();
   },
+  'buildKey should have a default and be mutable' : function (test) {
+    test.expect(6);
+    this.httpCache.setRequest(this.req);
+    test.equal(this.httpCache.buildKey(), "v1:GET:1.1:dod.net:/foo");
+    this.httpCache.setKeyPrefix("testing:")
+    test.equal(this.httpCache.buildKey(), "testing:GET:1.1:dod.net:/foo");
+    this.req.method = "POST";
+    this.httpCache.setRequest(this.req);
+    test.equal(this.httpCache.buildKey(), "v1:POST:1.1:dod.net:/foo");
+    this.req.httpVersion = "1.0";
+    this.httpCache.setRequest(this.req);
+    test.equal(this.httpCache.buildKey(), "v1:POST:1.0:dod.net:/foo");
+    this.req.headers.host = "test.com";
+    this.httpCache.setRequest(this.req);
+    test.equal(this.httpCache.buildKey(), "v1:POST:1.0:test.com:/foo");
+    this.req.url = "/test01";
+    this.httpCache.setRequest(this.req);
+    test.equal(this.httpCache.buildKey(), "v1:POST:1.0:test.com:/test01");
+    test.done();
+  },
   'should have cacheOk method' : function (test) {
     test.expect(2);
     test.isNotNull(this.httpCache.cacheOk);
@@ -604,6 +624,16 @@ exports.http_cache = {
     test.expect(2);
     test.isNotNull(this.httpCache.decodeBody);
     test.isFunction(this.httpCache.decodeBody);
+    test.done();
+  },
+  'encodeBody/decodeBody should work together' : function (test) {
+    test.expect(3);
+    var buff = new Buffer("testing");
+    var result = this.httpCache.encodeBody(buff);
+    test.isString(result);
+    var testBuffer = this.httpCache.decodeBody(result);
+    test.isBuffer(testBuffer);
+    test.equal(buff.toString(), testBuffer.toString());
     test.done();
   },
   'should have mergeHeaders method' : function (test) {
