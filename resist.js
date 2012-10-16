@@ -3,7 +3,7 @@
 var os           = require('os'),
     cluster      = require('cluster'),
     ResistServer = require('./lib/resist_server'),
-    Config       = require('./lib/config');
+    ResistConfig = require('./lib/resist_config');
 
 //
 // You should not need to change anything below this line, unless you know
@@ -41,7 +41,7 @@ if (cluster.isMaster) {
   if (DEBUG) { console.log('worker ' + process.pid + ': started'); }
   // godsflaw: This is just bootstrapping.  Normally this will not be in
   // production versions.  For now, it is easy to get running.
-  var config = new Config(function () {
+  var config = new ResistConfig(function () {
     config.setHost("dod.net", {
       "http_port"      : 80,                  // local port
       "proxy_host"     : "208.78.244.151",    // remote host to proxy to

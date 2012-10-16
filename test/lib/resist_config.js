@@ -1,4 +1,4 @@
-var Config = require("../../lib/config"),
+var ResistConfig = require("../../lib/resist_config"),
     Gossiper = require('gossiper').Gossiper,
     stub = require("../fixtures/stub");
 
@@ -15,7 +15,7 @@ function _set_up(callback) {
 
   seed = new Gossiper(7000, [], '127.0.0.1');
   seed.start(function () {
-    this.config = new Config(function () {
+    this.config = new ResistConfig(function () {
       this.backup.config.gossip.stop = this.config.gossip.stop;
       this.config.gossip.stop = stub();
       callback();
@@ -34,13 +34,13 @@ function _tear_down(callback) {
   callback();
 }
 
-exports.config = {
+exports.resist_config = {
   setUp : _set_up,
   tearDown : _tear_down,
-  'testing Config module' : function (test) {
+  'testing ResistConfig module' : function (test) {
     test.expect(2);
-    test.isNotNull(Config);
-    test.isFunction(Config);
+    test.isNotNull(ResistConfig);
+    test.isFunction(ResistConfig);
     test.done();
   },
   'should be object' : function (test) {

@@ -1,5 +1,5 @@
 var ResistServer = require("../../lib/resist_server"),
-    Config       = require("../../lib/config"),
+    ResistConfig = require("../../lib/resist_config"),
     stub         = require("../fixtures/stub");
 
 function _set_up(callback) {
@@ -10,7 +10,7 @@ function _set_up(callback) {
 
   var options = {
     "debug"  : false,
-    "config" : new Config(function () {
+    "config" : new ResistConfig(function () {
       this.setHost("dod.net", {
         "http_port"      : 8000,              // local port
         "proxy_host"     : "208.78.244.151",  // remote host to proxy to
