@@ -22,12 +22,13 @@ function _set_up(callback) {
   this.res = {
     "statusCode"  : "200",
     "headers"     : {
-      "some" : "data"
+      "cache-control" : "yammer",
+      "some"          : "data"
     }
   };
 
   this.res.getHeader = function (key) {
-    return this.res.headers.key;
+    return this.res.headers[key];
   }.bind(this);
 
   var cacheOptions = {
@@ -358,16 +359,18 @@ exports.resist_cache = {
     test.done();
   },
   'setBody should actually set value in object' : function (test) {
-    test.expect(6);
+    test.expect(8);
     test.isNotNull(this.resistCache.getBody);
     test.isNotNull(this.resistCache.setBody);
     test.isBuffer(this.resistCache.getBody());
     test.equal(this.resistCache.getBody().length, 0);
     var test1 = new Buffer("test1");
     this.resistCache.setBody(test1);
+    test.equal(this.resistCache.getBodySize(), 5);
     test.equal(this.resistCache.getBody().toString(), test1.toString());
     var test2 = new Buffer("test2");
     this.resistCache.setBody(test2);
+    test.equal(this.resistCache.getBodySize(), 10);
     test.equal(this.resistCache.getBody().toString(),
       test1.toString() + test2.toString());
     test.done();
@@ -379,7 +382,7 @@ exports.resist_cache = {
     test.done();
   },
   'clearBody should actually clear set value in object' : function (test) {
-    test.expect(7);
+    test.expect(9);
     test.isNotNull(this.resistCache.getBody);
     test.isNotNull(this.resistCache.setBody);
     test.isNotNull(this.resistCache.clearBody);
@@ -388,7 +391,9 @@ exports.resist_cache = {
     var test1 = new Buffer("test1");
     this.resistCache.setBody(test1);
     test.equal(this.resistCache.getBody().toString(), test1.toString());
+    test.equal(this.resistCache.getBodySize(), 5);
     this.resistCache.clearBody();
+    test.equal(this.resistCache.getBodySize(), 0);
     test.equal(this.resistCache.getBody().length, 0);
     test.done();
   },
@@ -608,10 +613,112 @@ exports.resist_cache = {
     test.isFunction(this.resistCache.cacheOk);
     test.done();
   },
+  'cacheOk should be true' : function (test) {
+    test.expect(1);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be false if body is too large' : function (test) {
+    test.expect(1);
+    this.resistCache.setMaxBodySize(this.resistCache.getMaxBodySize() + 1);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be false method is POST' : function (test) {
+    test.expect(1);
+    this.req.method = "POST";
+    this.resistCache.setRequest(this.req);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be false if something matches noCache' : function (test) {
+    test.expect(1);
+    this.req.url = "/wp-admin";
+    this.resistCache.setRequest(this.req);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be false if cookie matches noCacheCookie' : function (test) {
+    test.expect(1);
+    this.req.headers.cookie = "wordpress_logged_in_";
+    this.resistCache.setRequest(this.req);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be false if req cache-control is no-cache' : function (test) {
+    test.expect(1);
+    this.req.headers['cache-control'] = 'no-cache';
+    this.resistCache.setRequest(this.req);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be false if res cache-control is no-cache' : function (test) {
+    test.expect(1);
+    this.res.headers['cache-control'] = 'no-cache';
+    this.resistCache.setResponse(this.res);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be false if statusCode is 500' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 500;
+    this.resistCache.setResponse(this.res);
+    test.ok(!(this.resistCache.cacheOk()));
+    test.done();
+  },
+  'cacheOk should be true if statusCode is 200' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 200;
+    this.resistCache.setResponse(this.res);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be true if statusCode is 203' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 203;
+    this.resistCache.setResponse(this.res);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be true if statusCode is 300' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 300;
+    this.resistCache.setResponse(this.res);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be true if statusCode is 301' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 301;
+    this.resistCache.setResponse(this.res);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
+  'cacheOk should be true if statusCode is 410' : function (test) {
+    test.expect(1);
+    this.res.statusCode = 410;
+    this.resistCache.setResponse(this.res);
+    test.ok(this.resistCache.cacheOk());
+    test.done();
+  },
   'should have isStale method' : function (test) {
     test.expect(2);
     test.isNotNull(this.resistCache.isStale);
     test.isFunction(this.resistCache.isStale);
+    test.done();
+  },
+  'isStale should report stale' : function (test) {
+    test.expect(1);
+    var date = new Date();
+    this.resistCache.setTimestamp(date.getTime() - 400000);
+    test.ok(this.resistCache.isStale());
+    test.done();
+  },
+  'isStale should report okay' : function (test) {
+    test.expect(1);
+    var date = new Date();
+    this.resistCache.setTimestamp(date.getTime() - 40000);
+    test.ok(!(this.resistCache.isStale()));
     test.done();
   },
   'should have encodeBody method' : function (test) {
@@ -648,8 +755,9 @@ exports.resist_cache = {
       "more" : "data"
     };
     var expectHeaders = {
-      "some" : "data",
-      "more" : "data"
+      "some"          : "data",
+      "cache-control" : "yammer",
+      "more"          : "data"
     };
     this.resistCache.setHeaders(this.res.headers);
     test.deepEqual(this.resistCache.getHeaders(), this.res.headers);
