@@ -56,10 +56,10 @@ exports.resist_server = {
     test.isObject(this.resistServer);
     test.done();
   },
-  'should have proxyTimeout method' : function (test) {
+  'should have sendCachedResponse method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.resistServer.proxyTimeout);
-    test.isFunction(this.resistServer.proxyTimeout);
+    test.isNotNull(this.resistServer.sendCachedResponse);
+    test.isFunction(this.resistServer.sendCachedResponse);
     test.done();
   },
   'should have proxyError method' : function (test) {
@@ -68,10 +68,86 @@ exports.resist_server = {
     test.isFunction(this.resistServer.proxyError);
     test.done();
   },
-  'should have sendCachedResponse method' : function (test) {
+  'proxyError should call res methods' : function (test) {
+    test.expect(9);
+    var err;
+    var req = {};
+    var res = {};
+    res.writeHead = stub();
+    res.write = stub();
+    res.end = stub();
+    this.resistServer.proxyError(err, req, res);
+    test.ok(res.writeHead.called);
+    test.equal(res.writeHead.args[0], 500);
+    test.equal(res.writeHead.args[1], 'Internal Server Error');
+    test.isObject(res.writeHead.args[2]);
+    test.deepEqual(res.writeHead.args[2], { 'Content-Type': 'text/plain' });
+    test.ok(res.write.called);
+    test.equal(
+      res.write.args[0],
+      'Internal Server Error: please try again later.'
+    );
+    test.ok(res.end.called);
+    test.equal(res.end.args.length, 0);
+    test.done();
+  },
+  'proxyError should skip res.write is req.method is HEAD' : function (test) {
+    test.expect(3);
+    var err;
+    var req = {
+      'method' : 'HEAD'
+    };
+    var res = {};
+    res.writeHead = stub();
+    res.write = stub();
+    res.end = stub();
+    this.resistServer.proxyError(err, req, res);
+    test.ok(res.writeHead.called);
+    test.ok(!(res.write.called));
+    test.ok(res.end.called);
+    test.done();
+  },
+  'should have proxyTimeout method' : function (test) {
     test.expect(2);
-    test.isNotNull(this.resistServer.sendCachedResponse);
-    test.isFunction(this.resistServer.sendCachedResponse);
+    test.isNotNull(this.resistServer.proxyTimeout);
+    test.isFunction(this.resistServer.proxyTimeout);
+    test.done();
+  },
+  'proxyTimeout should call res methods' : function (test) {
+    test.expect(9);
+    var req = {};
+    var res = {};
+    res.writeHead = stub();
+    res.write = stub();
+    res.end = stub();
+    this.resistServer.proxyTimeout(req, res);
+    test.ok(res.writeHead.called);
+    test.equal(res.writeHead.args[0], 504);
+    test.equal(res.writeHead.args[1], 'Gateway Timeout');
+    test.isObject(res.writeHead.args[2]);
+    test.deepEqual(res.writeHead.args[2], { 'Content-Type': 'text/plain' });
+    test.ok(res.write.called);
+    test.equal(
+      res.write.args[0],
+      'Gateway Timeout: please try again later.'
+    );
+    test.ok(res.end.called);
+    test.equal(res.end.args.length, 0);
+    test.done();
+  },
+  'proxyTimeout should skip res.write is req.method is HEAD' : function (test) {
+    test.expect(3);
+    var req = {
+      'method' : 'HEAD'
+    };
+    var res = {};
+    res.writeHead = stub();
+    res.write = stub();
+    res.end = stub();
+    this.resistServer.proxyTimeout(req, res);
+    test.ok(res.writeHead.called);
+    test.ok(!(res.write.called));
+    test.ok(res.end.called);
     test.done();
   },
   'should have destroy method' : function (test) {
