@@ -79,5 +79,19 @@ exports.resist_server = {
     test.isNotNull(this.resistServer.destroy);
     test.isFunction(this.resistServer.destroy);
     test.done();
+  },
+  'destroy should call httpProxyServer.close(callback)' : function (test) {
+    var self = this;
+    test.expect(2);
+    this.backup.close = this.resistServer.httpProxyServer.close;
+    this.resistServer.httpProxyServer.close = function (callback) {
+      test.ok(true);
+      return callback();
+    };
+    this.resistServer.destroy(function () {
+      test.ok(true);
+      self.resistServer.httpProxyServer.close = self.backup.close;
+      test.done();
+    });
   }
 };
