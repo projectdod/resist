@@ -1,5 +1,6 @@
 var ResistServer = require("../../lib/resist_server"),
     ResistConfig = require("../../lib/resist_config"),
+    ResistCache  = require("../fixtures/resist_cache");
     stub         = require("../fixtures/stub");
 
 function _set_up(callback) {
@@ -31,6 +32,14 @@ function _set_up(callback) {
     })
   };
 
+
+  this.cache = new ResistCache();
+  this.req = {};
+  this.res = {};
+  this.res.writeHead = stub();
+  this.res.write = stub();
+  this.res.end = stub();
+
   this.options = options;
 }
 
@@ -56,10 +65,67 @@ exports.resist_server = {
     test.isObject(this.resistServer);
     test.done();
   },
+  'should set defaults in constructor' : function (test) {
+    test.expect(3);
+    test.ok(!(this.resistServer.debug));
+    test.isObject(this.resistServer.config);
+    test.isObject(this.resistServer.httpProxyServer);
+    test.done();
+  },
   'should have sendCachedResponse method' : function (test) {
     test.expect(2);
     test.isNotNull(this.resistServer.sendCachedResponse);
     test.isFunction(this.resistServer.sendCachedResponse);
+    test.done();
+  },
+  'sendCachedResponse should call writeHead with two args' : function (test) {
+    // sendCachedResponse resets this.res.writeHead
+    test.expect(5);
+    var writeHead = this.res.writeHead;
+    this.resistServer.sendCachedResponse(this.res, this.cache);
+    test.isFunction(this.res.writeHead);
+    test.isUndefined(this.res.writeHead.called);
+    test.isFunction(writeHead);
+    test.ok(writeHead.called);
+    test.equal(writeHead.args.length, 2);
+    test.done();
+  },
+  'sendCachedResponse should call writeHead with three args' : function (test) {
+    // sendCachedResponse resets this.res.writeHead
+    test.expect(5);
+    this.cache.getReason = function () {
+      return true;
+    };
+    var writeHead = this.res.writeHead;
+    this.resistServer.sendCachedResponse(this.res, this.cache);
+    test.isFunction(this.res.writeHead);
+    test.isUndefined(this.res.writeHead.called);
+    test.isFunction(writeHead);
+    test.ok(writeHead.called);
+    test.equal(writeHead.args.length, 3);
+    test.done();
+  },
+  'sendCachedResponse should call write with one arg' : function (test) {
+    // sendCachedResponse resets this.res.write
+    test.expect(5);
+    var write = this.res.write;
+    this.resistServer.sendCachedResponse(this.res, this.cache);
+    test.isFunction(this.res.write);
+    test.isUndefined(this.res.write.called);
+    test.isFunction(write);
+    test.ok(write.called);
+    test.equal(write.args.length, 1);
+    test.done();
+  },
+  'sendCachedResponse should call end' : function (test) {
+    // sendCachedResponse resets this.res.end
+    test.expect(4);
+    var end = this.res.end;
+    this.resistServer.sendCachedResponse(this.res, this.cache);
+    test.isFunction(this.res.end);
+    test.isUndefined(this.res.end.called);
+    test.isFunction(end);
+    test.ok(end.called);
     test.done();
   },
   'should have proxyError method' : function (test) {
@@ -71,40 +137,31 @@ exports.resist_server = {
   'proxyError should call res methods' : function (test) {
     test.expect(9);
     var err;
-    var req = {};
-    var res = {};
-    res.writeHead = stub();
-    res.write = stub();
-    res.end = stub();
-    this.resistServer.proxyError(err, req, res);
-    test.ok(res.writeHead.called);
-    test.equal(res.writeHead.args[0], 500);
-    test.equal(res.writeHead.args[1], 'Internal Server Error');
-    test.isObject(res.writeHead.args[2]);
-    test.deepEqual(res.writeHead.args[2], { 'Content-Type': 'text/plain' });
-    test.ok(res.write.called);
+    this.resistServer.proxyError(err, this.req, this.res);
+    test.ok(this.res.writeHead.called);
+    test.equal(this.res.writeHead.args[0], 500);
+    test.equal(this.res.writeHead.args[1], 'Internal Server Error');
+    test.isObject(this.res.writeHead.args[2]);
+    test.deepEqual(this.res.writeHead.args[2], {
+      'Content-Type': 'text/plain'
+    });
+    test.ok(this.res.write.called);
     test.equal(
-      res.write.args[0],
+      this.res.write.args[0],
       'Internal Server Error: please try again later.'
     );
-    test.ok(res.end.called);
-    test.equal(res.end.args.length, 0);
+    test.ok(this.res.end.called);
+    test.equal(this.res.end.args.length, 0);
     test.done();
   },
   'proxyError should skip res.write is req.method is HEAD' : function (test) {
     test.expect(3);
     var err;
-    var req = {
-      'method' : 'HEAD'
-    };
-    var res = {};
-    res.writeHead = stub();
-    res.write = stub();
-    res.end = stub();
-    this.resistServer.proxyError(err, req, res);
-    test.ok(res.writeHead.called);
-    test.ok(!(res.write.called));
-    test.ok(res.end.called);
+    this.req['method'] = 'HEAD';
+    this.resistServer.proxyError(err, this.req, this.res);
+    test.ok(this.res.writeHead.called);
+    test.ok(!(this.res.write.called));
+    test.ok(this.res.end.called);
     test.done();
   },
   'should have proxyTimeout method' : function (test) {
@@ -115,39 +172,30 @@ exports.resist_server = {
   },
   'proxyTimeout should call res methods' : function (test) {
     test.expect(9);
-    var req = {};
-    var res = {};
-    res.writeHead = stub();
-    res.write = stub();
-    res.end = stub();
-    this.resistServer.proxyTimeout(req, res);
-    test.ok(res.writeHead.called);
-    test.equal(res.writeHead.args[0], 504);
-    test.equal(res.writeHead.args[1], 'Gateway Timeout');
-    test.isObject(res.writeHead.args[2]);
-    test.deepEqual(res.writeHead.args[2], { 'Content-Type': 'text/plain' });
-    test.ok(res.write.called);
+    this.resistServer.proxyTimeout(this.req, this.res);
+    test.ok(this.res.writeHead.called);
+    test.equal(this.res.writeHead.args[0], 504);
+    test.equal(this.res.writeHead.args[1], 'Gateway Timeout');
+    test.isObject(this.res.writeHead.args[2]);
+    test.deepEqual(this.res.writeHead.args[2], {
+      'Content-Type': 'text/plain'
+    });
+    test.ok(this.res.write.called);
     test.equal(
-      res.write.args[0],
+      this.res.write.args[0],
       'Gateway Timeout: please try again later.'
     );
-    test.ok(res.end.called);
-    test.equal(res.end.args.length, 0);
+    test.ok(this.res.end.called);
+    test.equal(this.res.end.args.length, 0);
     test.done();
   },
   'proxyTimeout should skip res.write is req.method is HEAD' : function (test) {
     test.expect(3);
-    var req = {
-      'method' : 'HEAD'
-    };
-    var res = {};
-    res.writeHead = stub();
-    res.write = stub();
-    res.end = stub();
-    this.resistServer.proxyTimeout(req, res);
-    test.ok(res.writeHead.called);
-    test.ok(!(res.write.called));
-    test.ok(res.end.called);
+    this.req['method'] = 'HEAD';
+    this.resistServer.proxyTimeout(this.req, this.res);
+    test.ok(this.res.writeHead.called);
+    test.ok(!(this.res.write.called));
+    test.ok(this.res.end.called);
     test.done();
   },
   'should have destroy method' : function (test) {
