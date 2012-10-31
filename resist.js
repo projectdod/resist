@@ -54,7 +54,9 @@ if (cluster.isMaster) {
       "cache_type"     : 'redis',             // type of cache
       "cache_nodes"    : {                    // cache nodes, addr:port weight
         "10.41.54.144:6379" : 1,
-        "10.41.54.149:6379" : 1
+        "10.41.54.149:6379" : 1,
+        "10.41.54.153:6379" : 4,
+        "10.41.54.158:6379" : 4
       }
     });
 
