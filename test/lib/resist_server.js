@@ -9,22 +9,25 @@ function _set_up(callback) {
   this.backup = {};
   this.backup.jsonParse = JSON.parse;
 
+  var resistConfigOptions = {
+    "port"           : 24401,                 // local port
+    "cache_timeout"  : 300,                   // seconds
+    "cache_purge"    : 3600,                  // sec before local memory purge
+    "cache_type"     : 'local',               // type of cache
+    "cache_nodes"    : {                      // cache nodes, addr:port weight
+      "127.0.0.1:6379" : 1
+    }
+  };
+
   var options = {
     "debug"  : false,
-    "config" : new ResistConfig(function () {
+    "config" : new ResistConfig(resistConfigOptions, function () {
       this.setHost("dod.net", {
-        "http_port"      : 8000,              // local port
         "proxy_host"     : "208.78.244.151",  // remote host to proxy to
         "proxy_port"     : 80,                // remote port to proxy to
         "proxy_xforward" : true,              // true/false xforward
         "proxy_timeout"  : 5000,              // millisecond before timeout
         "proxy_sockets"  : 20000,             // max proxy sockets
-        "cache_timeout"  : 300,               // seconds
-        "cache_purge"    : 3600,              // sec before local memory purge
-        "cache_type"     : 'local',           // type of cache
-        "cache_nodes"    : {                  // cache nodes, addr:port weight
-          "127.0.0.1:6379" : 1
-        }
       });
 
       self.resistServer = new ResistServer(options);
