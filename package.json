@@ -1,7 +1,7 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
     {
@@ -23,13 +23,13 @@
     "redis"
   ],
   "dependencies": {
-    "http-proxy"      : ">= 0.0.0",
-    "hash_ring"       : "https://github.com/godsflaw/node-hash-ring/tarball/master",
-    "redis"           : ">= 0.0.0",
-    "gossiper"        : ">= 0.0.0"
+    "http-proxy" : ">= 0.0.x",
+    "redis"      : ">= 0.0.x",
+    "gossiper"   : ">= 0.0.x"
+    "hash_ring"  : "https://github.com/godsflaw/node-hash-ring/archive/master.tar.gz",
   },
-  "optionalDependencies": {
-    "nodeunit"        : "https://github.com/godsflaw/nodeunit/tarball/master"
+  "devDependencies": {
+    "nodeunit" : "https://github.com/godsflaw/nodeunit/archive/master.tar.gz"
   },
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
