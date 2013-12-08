@@ -23,10 +23,10 @@
     "redis"
   ],
   "dependencies": {
-    "http-proxy" : ">= 0.0.x",
-    "redis"      : ">= 0.0.x",
-    "gossiper"   : ">= 0.0.x"
-    "hash_ring"  : "https://github.com/godsflaw/node-hash-ring/archive/master.tar.gz",
+    "gossiper"   : "0.0.x",
+    "hashring"   : "1.0.x",
+    "http-proxy" : "0.10.x",
+    "redis"      : "0.9.x"
   },
   "devDependencies": {
     "nodeunit" : "https://github.com/godsflaw/nodeunit/archive/master.tar.gz"
@@ -34,5 +34,5 @@
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
   "scripts": { "test": "./run_tests" },
-  "engines": { "node": "0.8.x || 0.9.x" }
+  "engines": { "node": "0.10.x || 0.11.x" }
 }
