@@ -37,8 +37,8 @@ function _set_up(callback) {
 
     var options01 = {
       "debug"  : false,
-      "config" : new ResistConfig(resistConfig01, function () {
-        this.setHost("dod.net", {
+      "config" : new ResistConfig(resistConfig01, function (config) {
+        config.setHost("dod.net", {
           "proxy_host"     : "localhost",       // remote host to proxy to
           "proxy_port"     : 8081,              // remote port to proxy to
           "proxy_xforward" : true,              // true/false xforward
@@ -65,8 +65,8 @@ function _set_up(callback) {
 
     var options02 = {
       "debug"  : false,
-      "config" : new ResistConfig(resistConfig02, function () {
-        this.setHost("resist02.dod.net", {
+      "config" : new ResistConfig(resistConfig02, function (config) {
+        config.setHost("resist02.dod.net", {
           "proxy_host"     : "localhost",       // remote host to proxy to
           "proxy_port"     : 8082,              // remote port to proxy to
           "proxy_xforward" : true,              // true/false xforward

@@ -21,8 +21,8 @@ function _set_up(callback) {
 
   var options = {
     "debug"  : false,
-    "config" : new ResistConfig(resistConfigOptions, function () {
-      this.setHost("dod.net", {
+    "config" : new ResistConfig(resistConfigOptions, function (config) {
+      config.setHost("dod.net", {
         "proxy_host"     : "208.78.244.151",  // remote host to proxy to
         "proxy_port"     : 80,                // remote port to proxy to
         "proxy_xforward" : true,              // true/false xforward
