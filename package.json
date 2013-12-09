@@ -25,7 +25,7 @@
   "dependencies": {
     "gossiper"   : "0.0.x",
     "hashring"   : "1.0.x",
-    "http-proxy" : "0.10.x",
+    "http-proxy" : "0.8.x",
     "redis"      : "0.9.x"
   },
   "devDependencies": {
@@ -34,5 +34,5 @@
   "main": "resist.js",
   "bin": { "resist": "./resist.js" },
   "scripts": { "test": "./run_tests" },
-  "engines": { "node": "0.10.x || 0.11.x" }
+  "engines": { "node": "0.8.x || 0.9.x || 0.10.x || 0.11.x" }
 }

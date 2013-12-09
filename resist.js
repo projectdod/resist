@@ -43,7 +43,7 @@ if (cluster.isMaster) {
 
   var resistConfig = new ResistConfig(resistConfigOptions, function (config) {
     config.setHost("__default__", {
-      "proxy_host"     : "208.78.244.151", // remote host to proxy to
+      "proxy_host"     : "208.166.57.163", // remote host to proxy to
       "proxy_port"     : 80,               // remote port to proxy to
       "proxy_xforward" : true,             // true/false xforward
       "proxy_timeout"  : 5000,             // millisecond before timeout
