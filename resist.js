@@ -3,6 +3,7 @@
 var os                  = require('os'),
     cluster             = require('cluster'),
     resistConfigOptions = require("./conf/resist-server-config"),
+    routes              = require("./conf/routes"),
     ResistServer        = require('./lib/resist_server'),
     ResistConfig        = require('./lib/resist_config');
 
@@ -42,13 +43,10 @@ if (cluster.isMaster) {
   if (DEBUG) { console.log('worker ' + process.pid + ': started'); }
 
   var resistConfig = new ResistConfig(resistConfigOptions, function (config) {
-    config.setHost("__default__", {
-      "proxy_host"     : "208.166.57.163", // remote host to proxy to
-      "proxy_port"     : 80,               // remote port to proxy to
-      "proxy_xforward" : true,             // true/false xforward
-      "proxy_timeout"  : 5000,             // millisecond before timeout
-      "proxy_sockets"  : 20000,            // max proxy sockets
-    });
+    // XXX: so yeah, make this syntax correct
+    for (var key in routes) {
+      config.setHost(key, routes[key]);
+    }
 
     var resistServer = new ResistServer({
       "config" : config,
