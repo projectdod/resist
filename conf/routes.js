@@ -1,6 +1,6 @@
 module.exports = {
   "__default__" : {
-    "proxy_host"     : "208.166.57.163", // origin server
+    "proxy_host"     : "208.166.57.147", // origin server
     "proxy_port"     : 80,               // remote port to proxy to
     "proxy_xforward" : true,             // true/false xforward
     "proxy_timeout"  : 5000,             // millisecond before timeout
