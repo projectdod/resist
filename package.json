@@ -1,7 +1,7 @@
 {
   "name": "resist",
   "description": "A Distributed Reverse Caching Proxy",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "Christopher Mooney <chris@dod.net>",
   "contributors": [
     {
@@ -26,7 +26,7 @@
     "gossiper"   : "0.0.x",
     "hashring"   : "1.0.x",
     "http-proxy" : "0.8.x",
-    "redis"      : "0.9.x"
+    "redis"      : "0.8.x"
   },
   "devDependencies": {
     "nodeunit" : "https://github.com/godsflaw/nodeunit/archive/master.tar.gz"
