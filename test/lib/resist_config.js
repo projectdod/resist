@@ -15,7 +15,7 @@ function _set_up(callback) {
 
   seed = new Gossiper(7000, [], '127.0.0.1');
   seed.start(function () {
-    this.config = new ResistConfig(function () {
+    this.config = new ResistConfig({}, function () {
       this.backup.config.gossip.stop = this.config.gossip.stop;
       this.config.gossip.stop = stub();
       callback();
@@ -49,6 +49,30 @@ exports.resist_config = {
     test.isObject(this.config);
     test.done();
   },
+  'should have a getPort method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.config.getPort);
+    test.isFunction(this.config.getPort);
+    test.done();
+  },
+  'getPort should return 80 by default' : function (test) {
+    test.expect(1);
+    test.equals(this.config.getPort(), 80);
+    test.done();
+  },
+  'should have a setPort method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.config.setPort);
+    test.isFunction(this.config.setPort);
+    test.done();
+  },
+  'setPort should set the port' : function (test) {
+    test.expect(2);
+    test.equals(this.config.getPort(), 80);
+    this.config.setPort(8000);
+    test.equals(this.config.getPort(), 8000);
+    test.done();
+  },
   'should have a getHost method' : function (test) {
     test.expect(2);
     test.isNotNull(this.config.getHost);
@@ -72,6 +96,7 @@ exports.resist_config = {
       var data = this.config.getHost('dod.net');
 
       if (data) {
+        process.stdout.write("\n");
         test.expect(3);
         test.isNotNull(data);
         test.isObject(data);
@@ -80,10 +105,12 @@ exports.resist_config = {
 
         gossiper.stop();
       } else {
+        process.stdout.write(".");
         setTimeout(test_get_host.bind(this), 500);
       }
     };
 
+    process.stdout.write("  waiting");
     setTimeout(test_get_host.bind(this), 500);
 
     gossiper.setLocalState("dod.net", JSON.stringify({
@@ -126,6 +153,7 @@ exports.resist_config = {
       var data = gossiper.getLocalState("dod.net");
 
       if (data) {
+        process.stdout.write("\n");
         data = JSON.parse(data);
         test.expect(4);
         test.isNotNull(data);
@@ -137,11 +165,25 @@ exports.resist_config = {
 
         gossiper.stop();
       } else {
+        process.stdout.write(".");
         setTimeout(test_set_host.bind(this), 500);
       }
     };
 
+    process.stdout.write("  waiting");
     setTimeout(test_set_host.bind(this), 500);
+  },
+  'should have a getCache method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.config.getCache);
+    test.isFunction(this.config.getCache);
+    test.done();
+  },
+  'should have a setCache method' : function (test) {
+    test.expect(2);
+    test.isNotNull(this.config.setCache);
+    test.isFunction(this.config.setCache);
+    test.done();
   },
   'should have a destroy method' : function (test) {
     test.expect(2);
